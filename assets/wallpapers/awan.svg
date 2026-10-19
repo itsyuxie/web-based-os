@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a5bd9"/>
+      <stop offset=".45" stop-color="#6f8ff5"/>
+      <stop offset=".75" stop-color="#b3b9f2"/>
+      <stop offset="1" stop-color="#f6c4dc"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="1400" cy="330" r="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff6d6" stop-opacity=".95"/>
+      <stop offset=".18" stop-color="#ffe9b8" stop-opacity=".6"/>
+      <stop offset="1" stop-color="#ffe0c2" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <filter id="softer" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <rect width="1920" height="1080" fill="url(#sun)"/>
+  <circle cx="1400" cy="330" r="70" fill="#fffaf0" opacity=".9"/>
+
+  <!-- distant haze clouds -->
+  <g fill="#ffffff" opacity=".35" filter="url(#softer)">
+    <ellipse cx="300" cy="260" rx="260" ry="46"/>
+    <ellipse cx="520" cy="230" rx="180" ry="38"/>
+    <ellipse cx="1650" cy="520" rx="300" ry="50"/>
+    <ellipse cx="980" cy="160" rx="220" ry="30"/>
+  </g>
+
+  <!-- mid clouds -->
+  <g fill="#ffffff" opacity=".7" filter="url(#soft)">
+    <g transform="translate(160 430)">
+      <circle cx="80" cy="60" r="60"/><circle cx="160" cy="40" r="78"/><circle cx="250" cy="62" r="58"/>
+      <rect x="60" y="60" width="220" height="60" rx="30"/>
+    </g>
+    <g transform="translate(1180 520) scale(1.2)">
+      <circle cx="80" cy="60" r="56"/><circle cx="150" cy="34" r="70"/><circle cx="230" cy="58" r="54"/><circle cx="290" cy="76" r="38"/>
+      <rect x="40" y="62" width="280" height="54" rx="27"/>
+    </g>
+    <g transform="translate(760 330) scale(.8)">
+      <circle cx="70" cy="60" r="50"/><circle cx="140" cy="40" r="66"/><circle cx="210" cy="64" r="46"/>
+      <rect x="40" y="62" width="200" height="50" rx="25"/>
+    </g>
+  </g>
+
+  <!-- cloud banks -->
+  <path d="M0 800 C 120 740 220 760 300 790 C 360 720 500 700 580 770 C 660 720 780 730 840 790 C 920 750 1020 750 1080 800 C 1160 740 1300 730 1380 790 C 1460 740 1580 740 1640 800 C 1720 760 1840 760 1920 790 L1920 1080 L0 1080 Z" fill="#ffffff" opacity=".55"/>
+  <path d="M0 880 C 100 820 240 830 320 880 C 400 820 540 810 620 870 C 700 830 820 830 900 880 C 980 820 1120 810 1200 870 C 1280 830 1420 830 1480 880 C 1560 830 1700 820 1780 870 C 1840 850 1890 850 1920 860 L1920 1080 L0 1080 Z" fill="#ffffff" opacity=".75"/>
+  <path d="M0 960 C 140 910 260 920 360 960 C 460 910 600 910 700 960 C 800 915 940 915 1040 960 C 1140 910 1280 910 1380 960 C 1480 915 1620 915 1720 960 C 1800 935 1870 935 1920 945 L1920 1080 L0 1080 Z" fill="#ffffff" opacity=".92"/>
+</svg>
