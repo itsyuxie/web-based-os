@@ -1,4 +1,4 @@
-/* AwanOS — Penampil Gambar */
+/* AwanOS — Image Viewer */
 
 .win-body.imageviewer { background: #121418; }
 .iv-stage { flex: 1; min-height: 0; overflow: auto; display: flex; padding: 16px; }

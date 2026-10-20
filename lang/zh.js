@@ -1,0 +1,250 @@
+/* AwanOS — system strings: Simplified Chinese (简体中文) */
+OS.i18n.register('zh', {
+  common: {
+    ok: '确定',
+    cancel: '取消',
+    open: '打开',
+    save: '保存',
+    delete: '删除',
+    dismiss: '关闭',
+  },
+
+  dialog: {
+    confirm: '确认',
+    error: '出错了',
+  },
+
+  picker: {
+    openTitle: '打开文件',
+    saveTitle: '另存为',
+    fileName: '文件名',
+    fileNameLabel: '文件名：',
+    up: '向上一级',
+    empty: '此文件夹为空',
+    overwrite: '“{name}”已存在。要替换它吗？',
+    overwriteTitle: '确认保存',
+    replace: '替换',
+  },
+
+  places: {
+    home: '主目录',
+    desktop: '桌面',
+    documents: '文档',
+    pictures: '图片',
+    music: '音乐',
+    downloads: '下载',
+    root: '文件系统',
+  },
+
+  wm: {
+    minimize: '最小化',
+    maximize: '最大化',
+    restore: '还原',
+    close: '关闭',
+    snapLeft: '贴靠到左侧',
+    snapRight: '贴靠到右侧',
+    appNotFound: '找不到应用',
+    appNotFoundBody: '没有名为“{id}”的应用。',
+    launchFailed: '{name} 无法启动',
+  },
+
+  apps: {
+    notFound: '找不到位置“{path}”。',
+    cannotOpen: '无法打开',
+  },
+
+  fileops: {
+    types: {
+      folder: '文件夹',
+      shortcut: '应用快捷方式',
+      file: '文件',
+      ext: '{ext} 文件',
+      withExt: '{kind} (.{ext})',
+      text: '文本文档',
+      code: '源代码',
+      html: 'HTML 网页',
+      image: '图片',
+      audio: '音频',
+      data: '数据',
+    },
+    openWith: '用 {app} 打开',
+    openIn: '在 {app} 中打开',
+    cut: '剪切',
+    copy: '复制',
+    rename: '重命名',
+    download: '下载到电脑',
+    properties: '属性',
+    pasteFailed: '无法粘贴',
+    moveFailed: '无法移动',
+    renameFailed: '无法重命名',
+    deleteFailed: '无法删除',
+    deleteTitle: '删除',
+    deleteOne: '要永久删除“{name}”吗？',
+    deleteMany_other: '要永久删除这 {count} 个项目吗？',
+    newFolderName: '新建文件夹',
+    newFileName: '新建文本文档',
+    props: {
+      title: '属性 — {name}',
+      type: '类型：{value}',
+      location: '位置：{value}',
+      size: '大小：{value}',
+      contents_other: '包含：{count} 个项目',
+      modified: '修改时间：{value}',
+    },
+    imageUnreadable: '无法读取该图片',
+    textTooLarge: '文本文件过大（最大 1.5 MB）。',
+    fileTooLarge: '文件过大，无法存入浏览器存储（最大 512 KB）。',
+    importFailed: '无法导入 {name}',
+    importDone: '导入完成',
+    importDoneBody_other: '已将 {count} 个文件添加到 {dest}。',
+    dropHint: '松开即可导入文件',
+  },
+
+  fs: {
+    readmeName: '自述文件.txt',
+    welcome: `欢迎使用 AwanOS！
+================
+
+AwanOS 是一个完全在浏览器中运行的桌面操作系统。
+你创建的所有文件都保存在此浏览器的本地存储中。
+
+可以试试这些操作：
+  • 双击桌面上的图标即可打开应用。
+  • 将窗口拖到屏幕左侧或右侧边缘可以分屏，拖到顶部可以最大化。
+  • 右键单击桌面可以新建文件夹或文档。
+  • 将电脑上的文件拖入 File Explorer 即可导入。
+  • 打开 Terminal 并输入 "help"，查看所有命令。
+  • 在 Settings 中更改语言、壁纸、主题和强调色。
+
+祝你玩得开心！
+`,
+    storageFull: '存储空间已满',
+    storageFullBody: '无法保存文件更改。请删除一些大文件。',
+    errors: {
+      rootReadOnly: '无法修改根目录',
+      notFound: '找不到：{path}',
+      fileNotFound: '找不到文件：{path}',
+      dirNotFound: '找不到文件夹：{path}',
+      notDir: '不是文件夹：{path}',
+      isDir: '这是一个文件夹：{path}',
+      exists: '已存在：{path}',
+      notEmpty: '文件夹不为空：{path}',
+      invalidName: '名称无效：“{name}”',
+      moveIntoSelf: '无法将文件夹移动到其自身内部',
+      copyIntoSelf: '无法将文件夹复制到其自身内部',
+      invalidData: '文件系统数据无效',
+    },
+  },
+
+  wallpapers: {
+    awan: '云朵',
+    senja: '黄昏',
+    aurora: '极光',
+    laut: '深海',
+    fajar: '黎明',
+    hutan: '森林',
+    malam: '星夜',
+    grafit: '石墨',
+    custom: '我的图片',
+  },
+
+  desktop: {
+    label: '桌面',
+    icons: '桌面图标',
+    newFolder: '新建文件夹',
+    newTextFile: '新建文本文档',
+    paste: '粘贴',
+    import: '从电脑导入…',
+    refresh: '刷新',
+    sortByName: '按名称排列图标',
+    openInApp: '在 {app} 中打开',
+    openAppHere: '在此处打开 {app}',
+    personalize: '个性化',
+  },
+
+  taskbar: {
+    label: '任务栏',
+    start: '开始',
+    apps: '应用',
+    clock: '日期和时间',
+    showDesktop: '显示桌面',
+    newWindow: '新建窗口',
+    pin: '固定到任务栏',
+    unpin: '从任务栏取消固定',
+    closeWindow: '关闭窗口',
+    closeAll: '关闭所有窗口',
+    settings: '任务栏设置',
+  },
+
+  start: {
+    label: '开始菜单',
+    search: '搜索',
+    searchPlaceholder: '搜索应用、文件或网页',
+    allApps: '所有应用',
+    recent: '最近使用的文件',
+    apps: '应用',
+    files: '文件和文件夹',
+    web: '网页',
+    searchWeb: '在网上搜索“{query}”',
+    openIn: '在 {app} 中打开',
+    addToDesktop: '添加到桌面',
+    account: '账户设置',
+    power: '电源',
+    lock: '锁定',
+    signOut: '注销',
+    restart: '重启',
+    shutdown: '关机',
+  },
+
+  quick: {
+    label: '快速设置',
+    wifi: 'WLAN',
+    bluetooth: '蓝牙',
+    airplane: '飞行模式',
+    darkMode: '深色模式',
+    nightLight: '夜间模式',
+    animations: '动画效果',
+    brightness: '亮度',
+    volume: '音量',
+    allSettings: '所有设置',
+    charging: '正在充电',
+    airplaneOn: '飞行模式已开启',
+    connected: '已连接到 AwanNet',
+    wifiOff: 'WLAN 已关闭',
+    status: '{network} · 音量 {volume}% · 电池 {battery}',
+  },
+
+  calendar: {
+    label: '日历',
+    notifications: '通知',
+    clearAll: '全部清除',
+    noNotifications: '没有新通知',
+    prevMonth: '上个月',
+    today: '今天',
+    nextMonth: '下个月',
+  },
+
+  session: {
+    lockHint: '单击或按任意键解锁',
+    signIn: '登录',
+    powerOn: '开机',
+    poweredOff: 'AwanOS 已关机。',
+    welcomeTitle: '欢迎，{name}！',
+    welcomeBody: '打开桌面上的“{file}”，了解入门技巧。',
+    unsavedTitle: '有未保存的更改',
+    unsavedMessage: '部分文档有未保存的更改，继续操作将丢失这些更改。',
+    unsaved: {
+      signOut: '仍然注销',
+      restart: '仍然重启',
+      shutdown: '仍然关机',
+    },
+  },
+
+  shortcuts: {
+    start: '打开开始菜单',
+    openApp: '打开 {app}',
+    desktop: '显示桌面',
+    closeWindow: '关闭当前窗口',
+    lock: '锁定屏幕',
+  },
+});

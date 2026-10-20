@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="id" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="AwanOS — sistem operasi desktop yang berjalan sepenuhnya di browser sebagai situs statis.">
+  <meta name="description" content="AwanOS — a desktop operating system that runs entirely in the browser as a static website.">
   <meta name="theme-color" content="#0f172a">
   <title>AwanOS</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -24,14 +24,14 @@
 </head>
 <body>
   <noscript>
-    <div class="noscript">AwanOS membutuhkan JavaScript. Aktifkan JavaScript lalu muat ulang halaman.</div>
+    <div class="noscript">AwanOS needs JavaScript. Please enable it and reload the page.<br>AwanOS 需要 JavaScript。请启用后重新加载页面。</div>
   </noscript>
 
   <div id="os">
     <!-- Desktop: wallpaper + icons -->
-    <main id="desktop" aria-label="Desktop">
+    <main id="desktop" data-i18n-aria-label="desktop.label">
       <div id="wallpaper"></div>
-      <div id="desktop-icons" role="listbox" aria-label="Ikon desktop" aria-multiselectable="true"></div>
+      <div id="desktop-icons" role="listbox" data-i18n-aria-label="desktop.icons" aria-multiselectable="true"></div>
       <div id="selection-box" hidden></div>
     </main>
 
@@ -40,16 +40,16 @@
     <div id="snap-preview" hidden></div>
 
     <!-- Taskbar -->
-    <footer id="taskbar" aria-label="Bilah tugas">
-      <button id="start-button" class="tb-btn" title="Mulai" aria-haspopup="true" aria-expanded="false"></button>
-      <div id="taskbar-apps" role="toolbar" aria-label="Aplikasi"></div>
+    <footer id="taskbar" data-i18n-aria-label="taskbar.label">
+      <button id="start-button" class="tb-btn" data-i18n-title="taskbar.start" data-i18n-aria-label="taskbar.start" aria-haspopup="true" aria-expanded="false"></button>
+      <div id="taskbar-apps" role="toolbar" data-i18n-aria-label="taskbar.apps"></div>
       <div id="tray">
-        <button id="tray-quick" class="tb-btn tray-btn" title="Pengaturan cepat"></button>
-        <button id="tray-clock" class="tb-btn tray-btn" title="Tanggal &amp; waktu">
+        <button id="tray-quick" class="tb-btn tray-btn" data-i18n-aria-label="quick.label"></button>
+        <button id="tray-clock" class="tb-btn tray-btn" data-i18n-aria-label="taskbar.clock">
           <span class="clock-time"></span>
           <span class="clock-date"></span>
         </button>
-        <button id="show-desktop" title="Tampilkan desktop" aria-label="Tampilkan desktop"></button>
+        <button id="show-desktop" data-i18n-title="taskbar.showDesktop" data-i18n-aria-label="taskbar.showDesktop"></button>
       </div>
     </footer>
   </div>
@@ -60,7 +60,8 @@
   <div id="toasts" aria-live="polite"></div>
 
   <!-- Session screens -->
-  <section id="boot-screen" class="screen" hidden>
+  <!-- Visible from the first paint; hidden by the session once the desktop is ready. -->
+  <section id="boot-screen" class="screen">
     <div class="boot-logo"></div>
     <div class="boot-name">AwanOS</div>
     <div class="spinner"></div>
@@ -71,31 +72,34 @@
     <div class="lock-clock">
       <div class="lock-time"></div>
       <div class="lock-date"></div>
-      <div class="lock-hint">Klik atau tekan tombol apa saja untuk membuka</div>
+      <div class="lock-hint" data-i18n="session.lockHint"></div>
     </div>
     <form class="lock-login" autocomplete="off">
       <div class="avatar avatar-lg"></div>
       <div class="lock-user"></div>
-      <button type="submit" class="btn btn-primary lock-submit">Masuk</button>
+      <button type="submit" class="btn btn-primary lock-submit" data-i18n="session.signIn"></button>
     </form>
   </section>
 
   <section id="off-screen" class="screen" hidden>
-    <button class="power-on" title="Nyalakan" aria-label="Nyalakan"></button>
-    <p>AwanOS telah dimatikan.</p>
+    <button class="power-on" data-i18n-title="session.powerOn" data-i18n-aria-label="session.powerOn"></button>
+    <p data-i18n="session.poweredOff"></p>
   </section>
 
   <!-- Core -->
   <script src="js/core/utils.js"></script>
   <script src="js/core/icons.js"></script>
   <script src="js/core/settings.js"></script>
+  <script src="js/core/i18n.js"></script>
   <script src="js/core/vfs.js"></script>
   <script src="js/core/ui.js"></script>
   <script src="js/core/wm.js"></script>
   <script src="js/core/apps.js"></script>
   <script src="js/core/fileops.js"></script>
+  <script src="js/core/migrate.js"></script>
 
-  <!-- Applications (apps/<id>/app.js) -->
+  <!-- Applications (apps/<id>/app.js). Language files (lang/<code>.js and
+       apps/<id>/lang/<code>.js) are loaded by OS.i18n.load() for the chosen language. -->
   <script src="apps/explorer/app.js"></script>
   <script src="apps/notepad/app.js"></script>
   <script src="apps/terminal/app.js"></script>

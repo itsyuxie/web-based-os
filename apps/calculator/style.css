@@ -1,4 +1,4 @@
-/* AwanOS — Kalkulator */
+/* AwanOS — Calculator */
 
 .win-body.calculator { flex-direction: row; background: var(--surface-2); }
 .calc-main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 4px 6px 6px; }

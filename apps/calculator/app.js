@@ -2,22 +2,36 @@
 (function () {
   'use strict';
   const OS = window.OS;
-  const { h } = OS.utils;
+  const t = OS.i18n.forApp('calculator');
+  const { h, escapeHtml } = OS.utils;
 
   const SYMBOL = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+  const ERROR = 'Error'; // internal marker for a result that is not a finite number
   const round = (n) => parseFloat(n.toPrecision(12));
 
-  /** Format a numeric string the Indonesian way: 1.234.567,89 */
+  let separators = null;
+  /** Grouping and decimal separators of the app's locale, e.g. "," and "." for en-US. */
+  function getSeparators() {
+    if (!separators) {
+      const parts = new Intl.NumberFormat(t.locale).formatToParts(1234567.5);
+      const part = (type, fallback) => (parts.find((p) => p.type === type) || { value: fallback }).value;
+      separators = { group: part('group', ''), decimal: part('decimal', '.') };
+    }
+    return separators;
+  }
+
+  /** Format a numeric string ("-1234.5", "1.5e+21") with the locale's separators, e.g. 1,234.5 in en-US. */
   function format(str) {
-    if (!/^-?\d*\.?\d*$/.test(str)) return str;
-    const neg = str.startsWith('-');
-    const [int, frac] = (neg ? str.slice(1) : str).split('.');
-    const grouped = (int || '0').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return `${neg ? '-' : ''}${grouped}${frac !== undefined ? ',' + frac : ''}`;
+    if (str === ERROR) return t('errors.generic');
+    const m = /^(-?)(\d*)(?:\.(\d*))?(e[+-]\d+)?$/.exec(str);
+    if (!m) return str;
+    const { group, decimal } = getSeparators();
+    const grouped = (m[2] || '0').replace(/\B(?=(\d{3})+(?!\d))/g, group);
+    return `${m[1]}${grouped}${m[3] !== undefined ? decimal + m[3] : ''}${m[4] || ''}`;
   }
 
   const toStr = (n) => {
-    if (!Number.isFinite(n)) return 'Error';
+    if (!Number.isFinite(n)) return ERROR;
     const r = round(n);
     const s = String(r);
     return /e/.test(s) ? r.toExponential(8).replace(/\.?0+e/, 'e') : s;
@@ -50,7 +64,7 @@
     }
 
     function addHistory(line, result) {
-      const item = h('button', { class: 'calc-history-item', html: `<span>${line}</span><strong>${format(result)}</strong>` });
+      const item = h('button', { class: 'calc-history-item', html: `<span>${escapeHtml(line)}</span><strong>${escapeHtml(format(result))}</strong>` });
       item.addEventListener('click', () => { display = result; fresh = true; render(); });
       historyEl.prepend(item);
       while (historyEl.children.length > 30) historyEl.lastChild.remove();
@@ -71,7 +85,7 @@
       } else if (k in SYMBOL) {
         if (op && !fresh) {
           const b = cur();
-          if (op === '/' && b === 0) return fail('Tidak dapat membagi dengan nol');
+          if (op === '/' && b === 0) return fail(t('errors.divideByZero'));
           acc = apply(acc, op, b);
           display = toStr(acc);
         } else if (acc === null || !op) {
@@ -97,12 +111,12 @@
           fresh = true;
           return render();
         }
-        if (o === '/' && b === 0) return fail('Tidak dapat membagi dengan nol');
+        if (o === '/' && b === 0) return fail(t('errors.divideByZero'));
         const result = apply(a, o, b);
         const line = `${format(toStr(a))} ${SYMBOL[o]} ${format(toStr(b))} =`;
         expr = line;
         display = toStr(result);
-        if (display === 'Error') return fail('Hasil tidak valid');
+        if (display === ERROR) return fail(t('errors.invalidResult'));
         addHistory(line, display);
         last = { op: o, operand: b };
         acc = null;
@@ -122,17 +136,17 @@
         display = toStr(acc !== null && (op === '+' || op === '-') ? (acc * v) / 100 : v / 100);
         fresh = true;
       } else if (k === 'inv') {
-        if (cur() === 0) return fail('Tidak dapat membagi dengan nol');
-        expr = `1/(${format(display)})`;
+        if (cur() === 0) return fail(t('errors.divideByZero'));
+        expr = t('expr.reciprocal', { value: format(display) });
         display = toStr(1 / cur());
         fresh = true;
       } else if (k === 'sq') {
-        expr = `sqr(${format(display)})`;
+        expr = t('expr.square', { value: format(display) });
         display = toStr(cur() * cur());
         fresh = true;
       } else if (k === 'sqrt') {
-        if (cur() < 0) return fail('Masukan tidak valid');
-        expr = `√(${format(display)})`;
+        if (cur() < 0) return fail(t('errors.invalidInput'));
+        expr = t('expr.squareRoot', { value: format(display) });
         display = toStr(Math.sqrt(cur()));
         fresh = true;
       }
@@ -152,7 +166,7 @@
       ['7', '7'], ['8', '8'], ['9', '9'], ['×', '*', 'op'],
       ['4', '4'], ['5', '5'], ['6', '6'], ['−', '-', 'op'],
       ['1', '1'], ['2', '2'], ['3', '3'], ['+', '+', 'op'],
-      ['±', 'neg'], ['0', '0'], [',', '.'], ['=', '=', 'eq'],
+      ['±', 'neg'], ['0', '0'], [getSeparators().decimal, '.'], ['=', '=', 'eq'],
     ];
     LAYOUT.forEach(([label, key, kind]) => {
       const b = h('button', { class: `calc-key${kind ? ' ' + kind : ''}`, text: label });
@@ -161,16 +175,16 @@
       keys.appendChild(b);
     });
 
-    const historyToggle = h('button', { class: 'icon-btn', title: 'Riwayat', html: OS.icons.glyph('list') });
+    const historyToggle = h('button', { class: 'icon-btn', title: t('history.toggle'), html: OS.icons.glyph('list') });
     historyToggle.addEventListener('click', () => win.body.classList.toggle('show-history'));
 
     win.body.classList.add('calculator');
     win.body.append(
       h('div', { class: 'calc-main' },
-        h('div', { class: 'calc-top' }, h('span', { text: 'Standar' }), historyToggle),
+        h('div', { class: 'calc-top' }, h('span', { text: t('mode') }), historyToggle),
         h('div', { class: 'calc-screen' }, exprEl, valueEl),
         keys),
-      h('aside', { class: 'calc-side' }, h('div', { class: 'calc-side-title', text: 'Riwayat' }), historyEl)
+      h('aside', { class: 'calc-side' }, h('div', { class: 'calc-side-title', text: t('history.title') }), historyEl)
     );
 
     const KEYMAP = { Enter: '=', '=': '=', Escape: 'C', Delete: 'CE', Backspace: 'back', ',': '.', '.': '.', '%': '%', '+': '+', '-': '-', '*': '*', '/': '/', x: '*', X: '*' };
@@ -192,9 +206,7 @@
 
   OS.apps.register({
     id: 'calculator',
-    name: 'Kalkulator',
-    description: 'Kalkulator standar',
-    keywords: ['calculator', 'hitung', 'matematika'],
+    languages: ['en'],
     icon: 'calculator',
     colors: ['#a3e635', '#16a34a'],
     width: 340,

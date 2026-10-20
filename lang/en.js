@@ -1,0 +1,253 @@
+/* AwanOS — system strings: English */
+OS.i18n.register('en', {
+  common: {
+    ok: 'OK',
+    cancel: 'Cancel',
+    open: 'Open',
+    save: 'Save',
+    delete: 'Delete',
+    dismiss: 'Dismiss',
+  },
+
+  dialog: {
+    confirm: 'Confirm',
+    error: 'Something went wrong',
+  },
+
+  picker: {
+    openTitle: 'Open file',
+    saveTitle: 'Save as',
+    fileName: 'File name',
+    fileNameLabel: 'File name:',
+    up: 'Up one level',
+    empty: 'This folder is empty',
+    overwrite: '"{name}" already exists. Do you want to replace it?',
+    overwriteTitle: 'Confirm save',
+    replace: 'Replace',
+  },
+
+  places: {
+    home: 'Home',
+    desktop: 'Desktop',
+    documents: 'Documents',
+    pictures: 'Pictures',
+    music: 'Music',
+    downloads: 'Downloads',
+    root: 'File system',
+  },
+
+  wm: {
+    minimize: 'Minimize',
+    maximize: 'Maximize',
+    restore: 'Restore',
+    close: 'Close',
+    snapLeft: 'Snap left',
+    snapRight: 'Snap right',
+    appNotFound: 'App not found',
+    appNotFoundBody: 'There is no app called "{id}".',
+    launchFailed: '{name} could not start',
+  },
+
+  apps: {
+    notFound: 'The location "{path}" could not be found.',
+    cannotOpen: "Can't open",
+  },
+
+  fileops: {
+    types: {
+      folder: 'Folder',
+      shortcut: 'App shortcut',
+      file: 'File',
+      ext: '{ext} file',
+      withExt: '{kind} (.{ext})',
+      text: 'Text document',
+      code: 'Source code',
+      html: 'HTML page',
+      image: 'Image',
+      audio: 'Audio',
+      data: 'Data',
+    },
+    openWith: 'Open with {app}',
+    openIn: 'Open in {app}',
+    cut: 'Cut',
+    copy: 'Copy',
+    rename: 'Rename',
+    download: 'Download to computer',
+    properties: 'Properties',
+    pasteFailed: "Can't paste",
+    moveFailed: "Can't move",
+    renameFailed: "Can't rename",
+    deleteFailed: "Can't delete",
+    deleteTitle: 'Delete',
+    deleteOne: 'Permanently delete "{name}"?',
+    deleteMany_one: 'Permanently delete this item?',
+    deleteMany_other: 'Permanently delete these {count} items?',
+    newFolderName: 'New folder',
+    newFileName: 'New document',
+    props: {
+      title: 'Properties — {name}',
+      type: 'Type: {value}',
+      location: 'Location: {value}',
+      size: 'Size: {value}',
+      contents_one: 'Contains: {count} item',
+      contents_other: 'Contains: {count} items',
+      modified: 'Modified: {value}',
+    },
+    imageUnreadable: 'The image could not be read',
+    textTooLarge: 'The text file is too large (max. 1.5 MB).',
+    fileTooLarge: 'The file is too large for browser storage (max. 512 KB).',
+    importFailed: 'Could not import {name}',
+    importDone: 'Import complete',
+    importDoneBody_one: '{count} file added to {dest}.',
+    importDoneBody_other: '{count} files added to {dest}.',
+    dropHint: 'Drop to import files',
+  },
+
+  fs: {
+    readmeName: 'Read me.txt',
+    welcome: `Welcome to AwanOS!
+==================
+
+AwanOS is a desktop operating system that runs entirely in your browser.
+Every file you create is saved in this browser's local storage.
+
+A few things to try:
+  • Double-click an icon on the desktop to open an app.
+  • Drag a window to the left or right edge to split the screen, or to the top to maximize it.
+  • Right-click the desktop to create a new folder or document.
+  • Drag files from your computer into File Explorer to import them.
+  • Open Terminal and type "help" to see the list of commands.
+  • Change the language, wallpaper, theme and accent color in Settings.
+
+Have fun!
+`,
+    storageFull: 'Storage full',
+    storageFullBody: 'File changes could not be saved. Delete some large files.',
+    errors: {
+      rootReadOnly: 'The root directory cannot be changed',
+      notFound: 'Not found: {path}',
+      fileNotFound: 'File not found: {path}',
+      dirNotFound: 'Folder not found: {path}',
+      notDir: 'Not a folder: {path}',
+      isDir: 'This is a folder: {path}',
+      exists: 'Already exists: {path}',
+      notEmpty: 'Folder is not empty: {path}',
+      invalidName: 'Invalid name: "{name}"',
+      moveIntoSelf: 'A folder cannot be moved into itself',
+      copyIntoSelf: 'A folder cannot be copied into itself',
+      invalidData: 'Invalid file system data',
+    },
+  },
+
+  wallpapers: {
+    awan: 'Clouds',
+    senja: 'Dusk',
+    aurora: 'Aurora',
+    laut: 'Deep Sea',
+    fajar: 'Dawn',
+    hutan: 'Forest',
+    malam: 'Starry Night',
+    grafit: 'Graphite',
+    custom: 'Your picture',
+  },
+
+  desktop: {
+    label: 'Desktop',
+    icons: 'Desktop icons',
+    newFolder: 'New folder',
+    newTextFile: 'New text document',
+    paste: 'Paste',
+    import: 'Import from computer…',
+    refresh: 'Refresh',
+    sortByName: 'Sort icons by name',
+    openInApp: 'Open in {app}',
+    openAppHere: 'Open {app} here',
+    personalize: 'Personalize',
+  },
+
+  taskbar: {
+    label: 'Taskbar',
+    start: 'Start',
+    apps: 'Apps',
+    clock: 'Date and time',
+    showDesktop: 'Show desktop',
+    newWindow: 'New window',
+    pin: 'Pin to taskbar',
+    unpin: 'Unpin from taskbar',
+    closeWindow: 'Close window',
+    closeAll: 'Close all windows',
+    settings: 'Taskbar settings',
+  },
+
+  start: {
+    label: 'Start menu',
+    search: 'Search',
+    searchPlaceholder: 'Search for apps, files or the web',
+    allApps: 'All apps',
+    recent: 'Recent files',
+    apps: 'Apps',
+    files: 'Files & folders',
+    web: 'Web',
+    searchWeb: 'Search the web for "{query}"',
+    openIn: 'Open in {app}',
+    addToDesktop: 'Add to desktop',
+    account: 'Account settings',
+    power: 'Power',
+    lock: 'Lock',
+    signOut: 'Sign out',
+    restart: 'Restart',
+    shutdown: 'Shut down',
+  },
+
+  quick: {
+    label: 'Quick settings',
+    wifi: 'Wi-Fi',
+    bluetooth: 'Bluetooth',
+    airplane: 'Airplane mode',
+    darkMode: 'Dark mode',
+    nightLight: 'Night light',
+    animations: 'Animations',
+    brightness: 'Brightness',
+    volume: 'Volume',
+    allSettings: 'All settings',
+    charging: 'charging',
+    airplaneOn: 'Airplane mode is on',
+    connected: 'Connected to AwanNet',
+    wifiOff: 'Wi-Fi is off',
+    status: '{network} · Volume {volume}% · Battery {battery}',
+  },
+
+  calendar: {
+    label: 'Calendar',
+    notifications: 'Notifications',
+    clearAll: 'Clear all',
+    noNotifications: 'No new notifications',
+    prevMonth: 'Previous month',
+    today: 'Today',
+    nextMonth: 'Next month',
+  },
+
+  session: {
+    lockHint: 'Click or press any key to unlock',
+    signIn: 'Sign in',
+    powerOn: 'Power on',
+    poweredOff: 'AwanOS has been shut down.',
+    welcomeTitle: 'Welcome, {name}!',
+    welcomeBody: 'Open "{file}" on the desktop for tips on getting started.',
+    unsavedTitle: 'Unsaved changes',
+    unsavedMessage: 'Some documents have unsaved changes that will be lost.',
+    unsaved: {
+      signOut: 'Sign out anyway',
+      restart: 'Restart anyway',
+      shutdown: 'Shut down anyway',
+    },
+  },
+
+  shortcuts: {
+    start: 'Open the Start menu',
+    openApp: 'Open {app}',
+    desktop: 'Show the desktop',
+    closeWindow: 'Close the active window',
+    lock: 'Lock the screen',
+  },
+});

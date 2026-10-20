@@ -19,7 +19,7 @@
         localStorage.setItem(PREFIX + key, JSON.stringify(value));
         return true;
       } catch (err) {
-        console.warn('AwanOS: gagal menyimpan', key, err);
+        console.warn('AwanOS: could not save', key, err);
         return false;
       }
     },
@@ -44,24 +44,27 @@
   };
 
   const WALLPAPERS = [
-    { id: 'awan', name: 'Awan', css: 'url("assets/wallpapers/awan.svg") center / cover no-repeat, #6d8cff' },
-    { id: 'senja', name: 'Senja', css: 'url("assets/wallpapers/senja.svg") center / cover no-repeat, #3b1d60' },
+    { id: 'awan', css: 'url("assets/wallpapers/awan.svg") center / cover no-repeat, #6d8cff' },
+    { id: 'senja', css: 'url("assets/wallpapers/senja.svg") center / cover no-repeat, #3b1d60' },
     {
-      id: 'aurora', name: 'Aurora',
+      id: 'aurora',
       css: 'radial-gradient(ellipse 60% 50% at 25% 25%, rgba(16, 233, 170, .55), transparent 70%), radial-gradient(ellipse 55% 60% at 75% 55%, rgba(124, 77, 255, .6), transparent 70%), radial-gradient(ellipse 50% 40% at 50% 100%, rgba(56, 189, 248, .45), transparent 70%), #070b1f',
     },
     {
-      id: 'laut', name: 'Laut Dalam',
+      id: 'laut',
       css: 'radial-gradient(circle at 80% 10%, rgba(120, 220, 255, .35), transparent 45%), linear-gradient(160deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
     },
-    { id: 'fajar', name: 'Fajar', css: 'radial-gradient(circle at 20% 80%, rgba(255, 255, 255, .45), transparent 40%), linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)' },
-    { id: 'hutan', name: 'Hutan', css: 'radial-gradient(circle at 70% 20%, rgba(255, 244, 179, .35), transparent 40%), linear-gradient(150deg, #0b3d3a 0%, #134e5e 40%, #71b280 100%)' },
+    { id: 'fajar', css: 'radial-gradient(circle at 20% 80%, rgba(255, 255, 255, .45), transparent 40%), linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)' },
+    { id: 'hutan', css: 'radial-gradient(circle at 70% 20%, rgba(255, 244, 179, .35), transparent 40%), linear-gradient(150deg, #0b3d3a 0%, #134e5e 40%, #71b280 100%)' },
     {
-      id: 'malam', name: 'Malam Berbintang',
+      id: 'malam',
       css: 'radial-gradient(1.5px 1.5px at 20px 30px, #fff, transparent), radial-gradient(1px 1px at 120px 80px, #fff, transparent), radial-gradient(1.5px 1.5px at 200px 160px, #cfe3ff, transparent), radial-gradient(1px 1px at 60px 190px, #fff, transparent), radial-gradient(1px 1px at 260px 40px, #fff, transparent) 0 0 / 300px 220px, radial-gradient(ellipse at 50% 120%, #3a1c71 0%, #141432 55%, #05050f 100%)',
     },
-    { id: 'grafit', name: 'Grafit', css: 'radial-gradient(circle at 30% 20%, #3a4256, transparent 60%), linear-gradient(180deg, #1c2130, #0e1118)' },
+    { id: 'grafit', css: 'radial-gradient(circle at 30% 20%, #3a4256, transparent 60%), linear-gradient(180deg, #1c2130, #0e1118)' },
   ];
+
+  // Display names live in the language files (wallpapers.<id>).
+  WALLPAPERS.forEach((wp) => Object.defineProperty(wp, 'name', { get: () => OS.t(`wallpapers.${wp.id}`), enumerable: true }));
 
   const ACCENTS = ['#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4'];
 
@@ -69,7 +72,8 @@
     theme: 'dark',
     accent: '#3b82f6',
     wallpaper: 'awan',
-    username: 'Pengguna',
+    username: 'User',
+    language: null, // null = follow the browser language
     animations: true,
     transparency: true,
     brightness: 100,
@@ -81,15 +85,14 @@
     clockSeconds: false,
     pinned: ['explorer', 'browser', 'terminal', 'notepad', 'settings'],
     desktopPositions: {
-      'Penjelajah Berkas.app': [0, 0],
-      'Browser.app': [0, 1],
-      'Terminal.app': [0, 2],
-      'Notepad.app': [0, 3],
-      'Paint.app': [0, 4],
-      'Kalkulator.app': [0, 5],
-      'Minesweeper.app': [1, 0],
-      'Pengaturan.app': [1, 1],
-      'Baca saya.txt': [1, 2],
+      'explorer.app': [0, 0],
+      'browser.app': [0, 1],
+      'terminal.app': [0, 2],
+      'notepad.app': [0, 3],
+      'paint.app': [0, 4],
+      'calculator.app': [0, 5],
+      'minesweeper.app': [1, 0],
+      'settings.app': [1, 1],
     },
   };
 

@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const OS = window.OS;
-  const { h, emitter, clamp, isMobile } = OS.utils;
+  const { h, emitter, clamp, isMobile, escapeHtml } = OS.utils;
   const { glyph } = OS.icons;
 
   const events = emitter();
@@ -55,15 +55,16 @@
     build() {
       const app = this.app;
       const el = h('div', { class: 'window opening', id: this.id, role: 'dialog', 'aria-label': app.name, tabindex: '-1' });
+      const label = (key) => escapeHtml(OS.t(`wm.${key}`));
       el.dataset.app = app.id;
       el.innerHTML =
         '<div class="win-titlebar">' +
         `<span class="win-icon">${OS.icons.appIcon(app, 'xs')}</span>` +
         '<span class="win-title"></span>' +
         '<div class="win-controls">' +
-        `<button class="win-btn win-min" title="Minimalkan" aria-label="Minimalkan">${glyph('minimize')}</button>` +
-        (this.resizable ? `<button class="win-btn win-max" title="Maksimalkan" aria-label="Maksimalkan">${glyph('maximize')}</button>` : '') +
-        `<button class="win-btn win-close" title="Tutup" aria-label="Tutup">${glyph('close')}</button>` +
+        `<button class="win-btn win-min" title="${label('minimize')}" aria-label="${label('minimize')}">${glyph('minimize')}</button>` +
+        (this.resizable ? `<button class="win-btn win-max" title="${label('maximize')}" aria-label="${label('maximize')}">${glyph('maximize')}</button>` : '') +
+        `<button class="win-btn win-close" title="${label('close')}" aria-label="${label('close')}">${glyph('close')}</button>` +
         '</div></div>' +
         '<div class="win-body"></div>' +
         (this.resizable ? RESIZE_DIRS.map((d) => `<div class="rz rz-${d}" data-dir="${d}"></div>`).join('') : '');
@@ -210,7 +211,7 @@
       if (this.maxBtn) {
         const max = state === 'maximized';
         this.maxBtn.innerHTML = glyph(max ? 'restore' : 'maximize');
-        this.maxBtn.title = max ? 'Pulihkan' : 'Maksimalkan';
+        this.maxBtn.title = OS.t(max ? 'wm.restore' : 'wm.maximize');
         this.maxBtn.setAttribute('aria-label', this.maxBtn.title);
       }
       events.emit('change');
@@ -242,13 +243,13 @@
 
     showMenu(x, y) {
       OS.ui.contextMenu(x, y, [
-        { label: 'Pulihkan', icon: 'restore', disabled: this.state === 'normal', action: () => this.setState('normal') },
-        { label: 'Minimalkan', icon: 'minimize', action: () => this.minimize() },
-        { label: 'Maksimalkan', icon: 'maximize', disabled: !this.resizable || this.state === 'maximized', action: () => this.setState('maximized') },
-        { label: 'Bagi ke kiri', icon: 'back', disabled: !this.resizable, action: () => this.setState('left') },
-        { label: 'Bagi ke kanan', icon: 'forward', disabled: !this.resizable, action: () => this.setState('right') },
+        { label: OS.t('wm.restore'), icon: 'restore', disabled: this.state === 'normal', action: () => this.setState('normal') },
+        { label: OS.t('wm.minimize'), icon: 'minimize', action: () => this.minimize() },
+        { label: OS.t('wm.maximize'), icon: 'maximize', disabled: !this.resizable || this.state === 'maximized', action: () => this.setState('maximized') },
+        { label: OS.t('wm.snapLeft'), icon: 'back', disabled: !this.resizable, action: () => this.setState('left') },
+        { label: OS.t('wm.snapRight'), icon: 'forward', disabled: !this.resizable, action: () => this.setState('right') },
         '-',
-        { label: 'Tutup', icon: 'close', danger: true, action: () => this.close() },
+        { label: OS.t('wm.close'), icon: 'close', danger: true, action: () => this.close() },
       ]);
     }
 
@@ -381,7 +382,7 @@
   function open(appId, args = {}) {
     const app = OS.apps.get(appId);
     if (!app) {
-      OS.notify({ title: 'Aplikasi tidak ditemukan', body: `Tidak ada aplikasi bernama "${appId}".`, icon: 'info' });
+      OS.notify({ title: OS.t('wm.appNotFound'), body: OS.t('wm.appNotFoundBody', { id: appId }), icon: 'info' });
       return null;
     }
     // Reuse an existing window for single-instance apps or an already-open file.
@@ -401,7 +402,7 @@
     } catch (err) {
       console.error(err);
       win.close(true);
-      OS.notify({ title: `${app.name} gagal dibuka`, body: err.message, icon: 'info' });
+      OS.notify({ title: OS.t('wm.launchFailed', { name: app.name }), body: err.message, icon: 'info' });
       return null;
     }
     requestAnimationFrame(() => requestAnimationFrame(() => win.el.classList.remove('opening')));

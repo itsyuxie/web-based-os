@@ -140,7 +140,7 @@
    * button's value (or null when cancelled) and value is the text input contents.
    */
   function dialog({ title = 'AwanOS', message = '', icon, input, content, buttons, width } = {}) {
-    buttons = buttons || [{ label: 'OK', value: true, primary: true }];
+    buttons = buttons || [{ label: OS.t('common.ok'), value: true, primary: true }];
     return new Promise((resolve) => {
       const previouslyFocused = document.activeElement;
       const overlay = h('div', { class: 'dialog-overlay' });
@@ -217,7 +217,7 @@
 
   const alert = (message, { title = 'AwanOS', icon = 'info' } = {}) => dialog({ title, message, icon }).then(() => undefined);
 
-  const confirm = (message, { title = 'Konfirmasi', okLabel = 'OK', cancelLabel = 'Batal', danger = false, icon = 'warning' } = {}) =>
+  const confirm = (message, { title = OS.t('dialog.confirm'), okLabel = OS.t('common.ok'), cancelLabel = OS.t('common.cancel'), danger = false, icon = 'warning' } = {}) =>
     dialog({
       title, message, icon,
       buttons: [
@@ -226,40 +226,41 @@
       ],
     }).then((r) => r.button === true);
 
-  const prompt = (message, value = '', { title = 'AwanOS', okLabel = 'OK', selectStem = false, placeholder = '' } = {}) =>
+  const prompt = (message, value = '', { title = 'AwanOS', okLabel = OS.t('common.ok'), selectStem = false, placeholder = '' } = {}) =>
     dialog({
       title, message,
       input: { value, selectStem, placeholder },
       buttons: [
         { label: okLabel, value: true, primary: true },
-        { label: 'Batal', value: false, cancel: true },
+        { label: OS.t('common.cancel'), value: false, cancel: true },
       ],
     }).then((r) => (r.button === true ? r.value : null));
 
-  const showError = (err, title = 'Terjadi kesalahan') => alert(err && err.message ? err.message : String(err), { title, icon: 'warning' });
+  const showError = (err, title = OS.t('dialog.error')) => alert(err && err.message ? err.message : String(err), { title, icon: 'warning' });
 
   /**
    * Minimal file chooser backed by the VFS.
    * mode: 'open' | 'save'. Resolves with an absolute path or null.
    */
-  function pickFile({ mode = 'open', title, startDir = OS.vfs.HOME + '/Dokumen', defaultName = '', extensions = null } = {}) {
+  function pickFile({ mode = 'open', title, startDir = OS.vfs.HOME + '/Documents', defaultName = '', extensions = null } = {}) {
     const vfs = OS.vfs;
     let cwd = vfs.isDir(startDir) ? vfs.resolve(startDir) : vfs.HOME;
     let selected = null;
 
     const pathLabel = h('div', { class: 'picker-path' });
     const list = h('div', { class: 'picker-list', tabindex: '0' });
-    const nameInput = h('input', { class: 'input', type: 'text', value: defaultName, placeholder: 'Nama berkas', spellcheck: false });
-    const upBtn = h('button', { class: 'icon-btn', title: 'Naik satu tingkat', html: glyph('up'), onclick: () => go(vfs.dirname(cwd)) });
-    const homeBtn = h('button', { class: 'icon-btn', title: 'Beranda', html: glyph('home'), onclick: () => go(vfs.HOME) });
+    const nameInput = h('input', { class: 'input', type: 'text', value: defaultName, placeholder: OS.t('picker.fileName'), spellcheck: false });
+    const upBtn = h('button', { class: 'icon-btn', title: OS.t('picker.up'), html: glyph('up'), onclick: () => go(vfs.dirname(cwd)) });
+    const homeBtn = h('button', { class: 'icon-btn', title: OS.t('places.home'), html: glyph('home'), onclick: () => go(vfs.HOME) });
     const shortcuts = h('div', { class: 'picker-shortcuts' },
-      ['Desktop', 'Dokumen', 'Gambar', 'Unduhan'].map((n) => h('button', { class: 'chip', text: n, onclick: () => go(`${vfs.HOME}/${n}`) })));
+      [['Desktop', 'desktop'], ['Documents', 'documents'], ['Pictures', 'pictures'], ['Downloads', 'downloads']]
+        .map(([dir, key]) => h('button', { class: 'chip', text: OS.t(`places.${key}`), onclick: () => go(`${vfs.HOME}/${dir}`) })));
 
     const content = h('div', { class: 'picker' },
       h('div', { class: 'picker-bar' }, upBtn, homeBtn, pathLabel),
       shortcuts,
       list,
-      mode === 'save' ? h('label', { class: 'picker-name' }, h('span', { text: 'Nama berkas:' }), nameInput) : null
+      mode === 'save' ? h('label', { class: 'picker-name' }, h('span', { text: OS.t('picker.fileNameLabel') }), nameInput) : null
     );
 
     let finish;
@@ -278,7 +279,7 @@
       let entries = [];
       try { entries = vfs.readdir(cwd); } catch (_) { /* ignore */ }
       entries = entries.filter((e) => e.type === 'dir' || !extensions || extensions.includes(OS.utils.extname(e.name)));
-      if (!entries.length) list.appendChild(h('div', { class: 'picker-empty', text: 'Folder ini kosong' }));
+      if (!entries.length) list.appendChild(h('div', { class: 'picker-empty', text: OS.t('picker.empty') }));
       entries.forEach((entry) => {
         const row = h('div', {
           class: 'picker-item',
@@ -303,7 +304,7 @@
       let closeDialog;
       finish = async (path) => {
         if (mode === 'save' && vfs.isFile(path)) {
-          const ok = await confirm(`"${vfs.basename(path)}" sudah ada. Timpa berkas tersebut?`, { title: 'Konfirmasi simpan', okLabel: 'Timpa' });
+          const ok = await confirm(OS.t('picker.overwrite', { name: vfs.basename(path) }), { title: OS.t('picker.overwriteTitle'), okLabel: OS.t('picker.replace') });
           if (!ok) return;
         }
         resolve(path);
@@ -311,12 +312,12 @@
       };
 
       const p = dialog({
-        title: title || (mode === 'save' ? 'Simpan sebagai' : 'Buka berkas'),
+        title: title || OS.t(mode === 'save' ? 'picker.saveTitle' : 'picker.openTitle'),
         content,
         width: 520,
         buttons: [
-          { label: mode === 'save' ? 'Simpan' : 'Buka', value: 'ok', primary: true },
-          { label: 'Batal', value: null, cancel: true },
+          { label: OS.t(mode === 'save' ? 'common.save' : 'common.open'), value: 'ok', primary: true },
+          { label: OS.t('common.cancel'), value: null, cancel: true },
         ],
       });
       // Grab the dialog's close function so finish() can close it programmatically.
@@ -345,7 +346,7 @@
         const target = vfs.join(cwd, name);
         if (vfs.isDir(target)) return resolve(await pickFile({ mode, title, startDir: target, defaultName, extensions }));
         if (vfs.isFile(target)) {
-          const ok = await confirm(`"${name}" sudah ada. Timpa berkas tersebut?`, { title: 'Konfirmasi simpan', okLabel: 'Timpa' });
+          const ok = await confirm(OS.t('picker.overwrite', { name }), { title: OS.t('picker.overwriteTitle'), okLabel: OS.t('picker.replace') });
           if (!ok) return resolve(await pickFile({ mode, title, startDir: cwd, defaultName: name, extensions }));
         }
         resolve(target);
@@ -375,7 +376,7 @@
         `<div class="toast-icon">${appDef ? OS.icons.appIcon(appDef) : glyph(icon)}</div>` +
         `<div class="toast-text"><div class="toast-title">${escapeHtml(title)}</div>${body ? `<div class="toast-body">${escapeHtml(body)}</div>` : ''}</div>`,
     });
-    const closeBtn = h('button', { class: 'toast-close', title: 'Tutup', html: glyph('close') });
+    const closeBtn = h('button', { class: 'toast-close', title: OS.t('common.dismiss'), html: glyph('close') });
     toast.appendChild(closeBtn);
     const dismiss = () => {
       toast.classList.add('leaving');

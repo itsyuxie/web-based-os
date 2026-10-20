@@ -8,7 +8,8 @@
   --accent: #3b82f6;
   --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
   --accent-text: color-mix(in srgb, var(--accent) 80%, var(--text));
-  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC", sans-serif;
   --mono: "Cascadia Code", "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --taskbar-h: 52px;
   --radius: 10px;
@@ -389,7 +390,7 @@ body.wm-busy iframe { pointer-events: none; }
 
 #desktop.drop-active::after,
 .drop-zone.drop-active::after {
-  content: "Lepaskan untuk mengimpor berkas";
+  content: attr(data-drop-label);
   position: absolute;
   inset: 12px;
   display: grid;
@@ -1025,7 +1026,7 @@ body.wm-busy iframe { pointer-events: none; }
 .power-on:hover { color: #fff; border-color: var(--accent); box-shadow: 0 0 40px color-mix(in srgb, var(--accent) 60%, transparent); }
 
 /* ---------------------------------------------------------------------- */
-/* Application chrome (shared by apps)                                  */
+/* Application chrome (shared by apps)                                    */
 /* ---------------------------------------------------------------------- */
 
 .win-body { container-type: inline-size; }

@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   const OS = window.OS;
+  const t = OS.i18n.forApp('imageviewer');
   const { h, formatBytes } = OS.utils;
   const { glyph } = OS.icons;
   const vfs = OS.vfs;
@@ -23,31 +24,32 @@
     const stage = h('div', { class: 'iv-stage' }, img);
     const info = h('span');
     const zoomLabel = h('span', { class: 'iv-zoom' });
+    const percent = new Intl.NumberFormat(t.locale, { style: 'percent', maximumFractionDigits: 0 });
     const btn = (icon, title, fn) => h('button', { class: 'icon-btn', title, 'aria-label': title, html: glyph(icon), onclick: fn });
-    const prevBtn = btn('back', 'Sebelumnya (←)', () => step(-1));
-    const nextBtn = btn('forward', 'Berikutnya (→)', () => step(1));
+    const prevBtn = btn('back', t('toolbar.previous'), () => step(-1));
+    const nextBtn = btn('forward', t('toolbar.next'), () => step(1));
 
     win.body.classList.add('imageviewer');
     win.body.append(
       stage,
       h('div', { class: 'iv-bar' },
-        btn('open', 'Buka…', openImage),
+        btn('open', t('toolbar.open'), openImage),
         prevBtn, nextBtn,
         h('div', { class: 'toolbar-sep' }),
-        btn('zoomOut', 'Perkecil (-)', () => setZoom(zoom / 1.25)),
+        btn('zoomOut', t('toolbar.zoomOut'), () => setZoom(zoom / 1.25)),
         zoomLabel,
-        btn('zoomIn', 'Perbesar (+)', () => setZoom(zoom * 1.25)),
-        btn('fit', 'Sesuaikan dengan jendela (0)', () => { fit = true; apply(); }),
+        btn('zoomIn', t('toolbar.zoomIn'), () => setZoom(zoom * 1.25)),
+        btn('fit', t('toolbar.fit'), () => { fit = true; apply(); }),
         h('div', { class: 'toolbar-sep' }),
-        btn('palette', 'Edit di Paint', () => path && OS.wm.open('paint', { path })),
-        btn('image', 'Jadikan wallpaper', setWallpaper),
-        btn('download', 'Unduh', () => path && OS.fileOps.download(path)),
+        btn('palette', t('toolbar.edit', { app: OS.apps.get('paint').name }), () => path && OS.wm.open('paint', { path })),
+        btn('image', t('toolbar.wallpaper'), setWallpaper),
+        btn('download', t('toolbar.download'), () => path && OS.fileOps.download(path)),
         h('span', { class: 'spacer' }),
         info)
     );
 
     async function openImage() {
-      const chosen = await OS.ui.pickFile({ mode: 'open', startDir: path ? vfs.dirname(path) : `${vfs.HOME}/Gambar`, extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'] });
+      const chosen = await OS.ui.pickFile({ mode: 'open', startDir: path ? vfs.dirname(path) : `${vfs.HOME}/Pictures`, extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'] });
       if (chosen) load(chosen);
     }
 
@@ -59,18 +61,18 @@
     function load(p) {
       p = vfs.resolve(p);
       let content;
-      try { content = vfs.readFile(p); } catch (err) { OS.ui.showError(err, 'Tidak dapat membuka'); return; }
+      try { content = vfs.readFile(p); } catch (err) { OS.ui.showError(err, t('errors.open')); return; }
       path = p;
       win.filePath = p;
       fit = true;
       img.onload = () => {
         apply();
         const st = vfs.stat(p);
-        info.textContent = `${img.naturalWidth} × ${img.naturalHeight} px · ${formatBytes(st ? st.size : 0)}`;
+        info.textContent = t('info', { width: img.naturalWidth, height: img.naturalHeight, size: formatBytes(st ? st.size : 0, t.locale) });
       };
-      img.onerror = () => { info.textContent = 'Gambar tidak dapat ditampilkan'; };
+      img.onerror = () => { info.textContent = t('errors.display'); };
       img.src = toSrc(content);
-      win.setTitle(`${vfs.basename(p)} — Penampil Gambar`);
+      win.setTitle(t('windowTitle', { file: vfs.basename(p) }));
       const list = siblings();
       prevBtn.disabled = nextBtn.disabled = list.length < 2;
     }
@@ -97,14 +99,14 @@
       }
       img.style.width = `${img.naturalWidth * zoom}px`;
       img.style.height = `${img.naturalHeight * zoom}px`;
-      zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+      zoomLabel.textContent = percent.format(zoom);
     }
 
     function setWallpaper() {
       if (!path) return;
       const ok = OS.settings.setCustomWallpaper(toSrc(vfs.readFile(path)));
-      if (ok) OS.notify({ title: 'Wallpaper diperbarui', body: vfs.basename(path), app: 'imageviewer' });
-      else OS.ui.alert('Penyimpanan browser penuh, wallpaper tidak dapat disimpan.', { title: 'Penampil Gambar', icon: 'warning' });
+      if (ok) OS.notify({ title: t('notify.wallpaper'), body: vfs.basename(path), app: 'imageviewer' });
+      else OS.ui.alert(t('errors.storageFull'), { title: t('name'), icon: 'warning' });
     }
 
     stage.addEventListener('wheel', (e) => {
@@ -126,17 +128,15 @@
 
     if (args.path) load(args.path);
     else {
-      win.setTitle('Penampil Gambar');
-      info.textContent = 'Buka gambar dari Penjelajah Berkas';
+      win.setTitle(t('name'));
+      info.textContent = t('placeholder', { app: OS.apps.get('explorer').name });
       prevBtn.disabled = nextBtn.disabled = true;
     }
   }
 
   OS.apps.register({
     id: 'imageviewer',
-    name: 'Penampil Gambar',
-    description: 'Lihat foto dan gambar',
-    keywords: ['image', 'photo', 'foto', 'gambar', 'viewer'],
+    languages: ['en'],
     icon: 'image',
     colors: ['#34d399', '#0d9488'],
     width: 800,

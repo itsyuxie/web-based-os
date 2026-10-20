@@ -10,20 +10,29 @@
     txt: 'text/plain', md: 'text/markdown', html: 'text/html', htm: 'text/html', css: 'text/css', js: 'text/javascript',
     json: 'application/json', csv: 'text/csv', svg: 'image/svg+xml', xml: 'application/xml',
   };
-  const KIND_LABEL = { text: 'Dokumen teks', code: 'Kode sumber', html: 'Halaman HTML', image: 'Gambar', audio: 'Audio', data: 'Data' };
 
   const events = emitter();
   const clipboard = { mode: null, paths: [] };
 
-  const displayName = (name) => (extname(name) === 'app' ? stripExt(name) : name);
+  /**
+   * Name shown for a file. App shortcuts hide their extension, and a shortcut named after an
+   * app id ("explorer.app", "explorer (2).app") shows that app's name in the current language.
+   */
+  function displayName(name) {
+    if (extname(name) !== 'app') return name;
+    const stem = stripExt(name);
+    const m = /^(.*?)( \(\d+\))?$/.exec(stem);
+    const app = OS.apps.get(m[1]);
+    return app ? app.name + (m[2] || '') : stem;
+  }
 
   function typeLabel(name, type) {
-    if (type === 'dir') return 'Folder';
+    if (type === 'dir') return OS.t('fileops.types.folder');
     const ext = extname(name);
-    if (ext === 'app') return 'Pintasan aplikasi';
+    if (ext === 'app') return OS.t('fileops.types.shortcut');
     const kind = OS.icons.fileKind(name);
-    if (KIND_LABEL[kind]) return `${KIND_LABEL[kind]} (.${ext})`;
-    return ext ? `Berkas ${ext.toUpperCase()}` : 'Berkas';
+    if (kind !== 'blank') return OS.t('fileops.types.withExt', { kind: OS.t(`fileops.types.${kind}`), ext });
+    return ext ? OS.t('fileops.types.ext', { ext: ext.toUpperCase() }) : OS.t('fileops.types.file');
   }
 
   function setClipboard(mode, paths) {
@@ -45,7 +54,7 @@
           created.push(vfs.copy(src, vfs.join(dest, vfs.uniqueName(dest, vfs.basename(src)))));
         }
       } catch (err) {
-        OS.ui.showError(err, 'Tidak dapat menempel');
+        OS.ui.showError(err, OS.t('fileops.pasteFailed'));
         break;
       }
     }
@@ -60,7 +69,7 @@
       try {
         vfs.rename(src, vfs.join(dest, vfs.uniqueName(dest, vfs.basename(src))));
       } catch (err) {
-        OS.ui.showError(err, 'Tidak dapat memindahkan');
+        OS.ui.showError(err, OS.t('fileops.moveFailed'));
         return;
       }
     }
@@ -72,7 +81,7 @@
     try {
       return vfs.rename(path, vfs.join(vfs.dirname(path), newName));
     } catch (err) {
-      OS.ui.showError(err, 'Tidak dapat mengganti nama');
+      OS.ui.showError(err, OS.t('fileops.renameFailed'));
       return null;
     }
   }
@@ -80,35 +89,35 @@
   async function remove(paths) {
     if (!paths.length) return false;
     const message = paths.length === 1
-      ? `Hapus "${displayName(vfs.basename(paths[0]))}" secara permanen?`
-      : `Hapus ${paths.length} item ini secara permanen?`;
-    const ok = await OS.ui.confirm(message, { title: 'Hapus', okLabel: 'Hapus', danger: true });
+      ? OS.t('fileops.deleteOne', { name: displayName(vfs.basename(paths[0])) })
+      : OS.t('fileops.deleteMany', { count: paths.length });
+    const ok = await OS.ui.confirm(message, { title: OS.t('fileops.deleteTitle'), okLabel: OS.t('common.delete'), danger: true });
     if (!ok) return false;
     for (const p of paths) {
       try {
         if (vfs.exists(p)) vfs.remove(p);
       } catch (err) {
-        OS.ui.showError(err, 'Tidak dapat menghapus');
+        OS.ui.showError(err, OS.t('fileops.deleteFailed'));
         return false;
       }
     }
     return true;
   }
 
-  const newFolder = (dir) => vfs.mkdir(vfs.join(dir, vfs.uniqueName(dir, 'Folder baru')));
-  const newTextFile = (dir) => vfs.writeFile(vfs.join(dir, vfs.uniqueName(dir, 'Dokumen baru.txt')), '');
+  const newFolder = (dir) => vfs.mkdir(vfs.join(dir, vfs.uniqueName(dir, OS.t('fileops.newFolderName'))));
+  const newTextFile = (dir) => vfs.writeFile(vfs.join(dir, vfs.uniqueName(dir, `${OS.t('fileops.newFileName')}.txt`)), '');
 
   function properties(path) {
     const st = vfs.stat(path);
     if (!st) return;
     const lines = [
-      `Jenis: ${typeLabel(st.name, st.type)}`,
-      `Lokasi: ${vfs.dirname(st.path).replace(vfs.HOME, '~')}`,
-      `Ukuran: ${formatBytes(st.size)}`,
-      st.type === 'dir' ? `Isi: ${st.count} item` : null,
-      `Diubah: ${formatDate(st.mtime)}`,
+      OS.t('fileops.props.type', { value: typeLabel(st.name, st.type) }),
+      OS.t('fileops.props.location', { value: vfs.dirname(st.path).replace(vfs.HOME, '~') }),
+      OS.t('fileops.props.size', { value: formatBytes(st.size) }),
+      st.type === 'dir' ? OS.t('fileops.props.contents', { count: st.count }) : null,
+      OS.t('fileops.props.modified', { value: formatDate(st.mtime) }),
     ];
-    OS.ui.alert(lines.filter(Boolean).join('\n'), { title: `Properti — ${displayName(st.name)}`, icon: 'info' });
+    OS.ui.alert(lines.filter(Boolean).join('\n'), { title: OS.t('fileops.props.title', { name: displayName(st.name) }), icon: 'info' });
   }
 
   function download(path) {
@@ -120,7 +129,7 @@
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('Gambar tidak dapat dibaca'));
+      img.onerror = () => reject(new Error(OS.t('fileops.imageUnreadable')));
       img.src = src;
     });
   }
@@ -148,10 +157,10 @@
     const ext = extname(file.name);
     if (file.type.startsWith('image/') && ext !== 'svg') return compressImage(file);
     if (TEXT_EXT.has(ext) || file.type.startsWith('text/')) {
-      if (file.size > 1.5 * 1024 * 1024) throw new Error('Berkas teks terlalu besar (maks. 1,5 MB).');
+      if (file.size > 1.5 * 1024 * 1024) throw new Error(OS.t('fileops.textTooLarge'));
       return { name: file.name, content: await readFile(file, 'text') };
     }
-    if (file.size > 512 * 1024) throw new Error('Berkas terlalu besar untuk penyimpanan browser (maks. 512 KB).');
+    if (file.size > 512 * 1024) throw new Error(OS.t('fileops.fileTooLarge'));
     return { name: file.name, content: await readFile(file, 'dataurl') };
   }
 
@@ -164,11 +173,11 @@
         vfs.writeFile(vfs.join(dest, vfs.uniqueName(dest, name)), content);
         count++;
       } catch (err) {
-        OS.notify({ title: `Gagal mengimpor ${file.name}`, body: err.message, icon: 'upload' });
+        OS.notify({ title: OS.t('fileops.importFailed', { name: file.name }), body: err.message, icon: 'upload' });
       }
     }
     if (count) {
-      OS.notify({ title: 'Impor selesai', body: `${count} berkas ditambahkan ke ${dest.replace(vfs.HOME, '~')}.`, icon: 'upload' });
+      OS.notify({ title: OS.t('fileops.importDone'), body: OS.t('fileops.importDoneBody', { count, dest: dest.replace(vfs.HOME, '~') }), icon: 'upload' });
     }
     return count;
   }
@@ -186,31 +195,32 @@
     const single = paths.length === 1 ? paths[0] : null;
     const stat = single ? vfs.stat(single) : null;
     const isApp = single && extname(single) === 'app';
-    const items = [{ label: 'Buka', icon: 'open', action: () => paths.forEach((p) => OS.apps.openPath(p)) }];
+    const items = [{ label: OS.t('common.open'), icon: 'open', action: () => paths.forEach((p) => OS.apps.openPath(p)) }];
     if (stat && stat.type === 'file' && !isApp) {
       OS.apps.handlersFor(single).slice(1).forEach((app) => {
-        items.push({ label: `Buka dengan ${app.name}`, iconHtml: OS.icons.appIcon(app, 'xs'), action: () => OS.apps.openPath(single, app.id) });
+        items.push({ label: OS.t('fileops.openWith', { app: app.name }), iconHtml: OS.icons.appIcon(app, 'xs'), action: () => OS.apps.openPath(single, app.id) });
       });
     }
     if (stat && stat.type === 'dir') {
-      items.push({ label: 'Buka di Terminal', icon: 'terminal', action: () => OS.wm.open('terminal', { cwd: single }) });
+      items.push({ label: OS.t('fileops.openIn', { app: OS.apps.get('terminal').name }), icon: 'terminal', action: () => OS.wm.open('terminal', { cwd: single }) });
     }
     items.push(
       '-',
-      { label: 'Potong', icon: 'cut', shortcut: 'Ctrl+X', action: () => setClipboard('cut', paths) },
-      { label: 'Salin', icon: 'copy', shortcut: 'Ctrl+C', action: () => setClipboard('copy', paths) },
-      { label: 'Ganti nama', icon: 'edit', shortcut: 'F2', disabled: !single || !onRename, action: () => onRename(single) },
-      { label: 'Hapus', icon: 'trash', shortcut: 'Del', danger: true, action: () => remove(paths) },
+      { label: OS.t('fileops.cut'), icon: 'cut', shortcut: 'Ctrl+X', action: () => setClipboard('cut', paths) },
+      { label: OS.t('fileops.copy'), icon: 'copy', shortcut: 'Ctrl+C', action: () => setClipboard('copy', paths) },
+      { label: OS.t('fileops.rename'), icon: 'edit', shortcut: 'F2', disabled: !single || !onRename, action: () => onRename(single) },
+      { label: OS.t('common.delete'), icon: 'trash', shortcut: 'Del', danger: true, action: () => remove(paths) },
       '-'
     );
-    if (stat && stat.type === 'file' && !isApp) items.push({ label: 'Unduh ke komputer', icon: 'download', action: () => download(single) });
-    if (single) items.push({ label: 'Properti', icon: 'info', action: () => properties(single) });
+    if (stat && stat.type === 'file' && !isApp) items.push({ label: OS.t('fileops.download'), icon: 'download', action: () => download(single) });
+    if (single) items.push({ label: OS.t('fileops.properties'), icon: 'info', action: () => properties(single) });
     return items;
   }
 
   /** Wire HTML5 drag & drop of real files onto an element. */
   function acceptDrops(el, getDest) {
     let depth = 0;
+    el.dataset.dropLabel = OS.t('fileops.dropHint');
     const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
     el.addEventListener('dragenter', (e) => {
       if (!hasFiles(e)) return;

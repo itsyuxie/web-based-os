@@ -4,6 +4,7 @@
   const OS = window.OS;
   const { h } = OS.utils;
   const { glyph } = OS.icons;
+  const t = OS.i18n.forApp('paint');
   const vfs = OS.vfs;
 
   const PALETTE = [
@@ -11,13 +12,13 @@
     '#ffffff', '#c3c3c3', '#b97a57', '#ffaec9', '#ffc90e', '#efe4b0', '#b5e61d', '#99d9ea', '#7092be', '#c8bfe7',
   ];
   const TOOLS = [
-    { id: 'pencil', name: 'Pensil (P)', icon: 'pencil', key: 'p' },
-    { id: 'brush', name: 'Kuas (B)', icon: 'brush', key: 'b' },
-    { id: 'eraser', name: 'Penghapus (E)', icon: 'eraser', key: 'e' },
-    { id: 'line', name: 'Garis (L)', icon: 'line', key: 'l' },
-    { id: 'rect', name: 'Persegi (R)', icon: 'square', key: 'r' },
-    { id: 'ellipse', name: 'Elips (O)', icon: 'circle', key: 'o' },
-    { id: 'fill', name: 'Isi warna (F)', icon: 'bucket', key: 'f' },
+    { id: 'pencil', icon: 'pencil', key: 'p' },
+    { id: 'brush', icon: 'brush', key: 'b' },
+    { id: 'eraser', icon: 'eraser', key: 'e' },
+    { id: 'line', icon: 'line', key: 'l' },
+    { id: 'rect', icon: 'square', key: 'r' },
+    { id: 'ellipse', icon: 'circle', key: 'o' },
+    { id: 'fill', icon: 'bucket', key: 'f' },
   ];
   const IMAGE_EXT = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'];
 
@@ -46,25 +47,27 @@
       canvas.height = hgt;
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, w, hgt);
-      sizeEl.textContent = `${w} × ${hgt} px`;
+      sizeEl.textContent = t('status.size', { width: w, height: hgt });
     }
     resetCanvas(960, 600);
 
     /* Toolbar ------------------------------------------------------ */
 
-    const toolBtns = TOOLS.map((t) => {
-      const b = h('button', { class: 'icon-btn', title: t.name, 'aria-label': t.name, html: glyph(t.icon) });
-      b.addEventListener('click', () => setTool(t.id));
-      b.dataset.tool = t.id;
+    const toolBtns = TOOLS.map((def) => {
+      const label = t(`tools.${def.id}`);
+      const b = h('button', { class: 'icon-btn', title: label, 'aria-label': label, html: glyph(def.icon) });
+      b.addEventListener('click', () => setTool(def.id));
+      b.dataset.tool = def.id;
       return b;
     });
-    const sizeInput = h('input', { type: 'range', min: 1, max: 60, value: size, title: 'Ukuran', 'aria-label': 'Ukuran kuas' });
-    const sizeOut = h('span', { class: 'paint-size', text: `${size}px` });
-    sizeInput.addEventListener('input', () => { size = Number(sizeInput.value); sizeOut.textContent = `${size}px`; });
-    const fillToggle = h('button', { class: 'icon-btn', title: 'Isi bentuk', html: '<svg class="glyph" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor"/></svg>' });
+    const sizeLabel = () => t('toolbar.sizeValue', { size });
+    const sizeInput = h('input', { type: 'range', min: 1, max: 60, value: size, title: t('toolbar.size'), 'aria-label': t('toolbar.brushSize') });
+    const sizeOut = h('span', { class: 'paint-size', text: sizeLabel() });
+    sizeInput.addEventListener('input', () => { size = Number(sizeInput.value); sizeOut.textContent = sizeLabel(); });
+    const fillToggle = h('button', { class: 'icon-btn', title: t('toolbar.fillShapes'), html: '<svg class="glyph" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor"/></svg>' });
     fillToggle.addEventListener('click', () => { fillShapes = !fillShapes; fillToggle.classList.toggle('on', fillShapes); });
 
-    const current = h('input', { type: 'color', class: 'paint-current', value: color, title: 'Warna khusus' });
+    const current = h('input', { type: 'color', class: 'paint-current', value: color, title: t('toolbar.customColor') });
     current.addEventListener('input', () => setColor(current.value));
     const swatches = h('div', { class: 'paint-palette' }, PALETTE.map((c) => {
       const s = h('button', { class: 'paint-swatch', title: c, style: { background: c } });
@@ -72,22 +75,22 @@
       return s;
     }));
 
-    const undoBtn = h('button', { class: 'icon-btn', title: 'Urungkan (Ctrl+Z)', html: glyph('undo'), onclick: doUndo });
-    const redoBtn = h('button', { class: 'icon-btn', title: 'Ulangi (Ctrl+Y)', html: `<span style="transform:scaleX(-1);display:grid">${glyph('undo')}</span>`, onclick: doRedo });
+    const undoBtn = h('button', { class: 'icon-btn', title: t('toolbar.undo'), html: glyph('undo'), onclick: doUndo });
+    const redoBtn = h('button', { class: 'icon-btn', title: t('toolbar.redo'), html: `<span style="transform:scaleX(-1);display:grid">${glyph('undo')}</span>`, onclick: doRedo });
 
-    const menuBtn = h('button', { class: 'menubar-item', text: 'Berkas' });
+    const menuBtn = h('button', { class: 'menubar-item', text: t('menu.file') });
     menuBtn.addEventListener('click', () => {
       const r = menuBtn.getBoundingClientRect();
       OS.ui.contextMenu(r.left, r.bottom + 2, [
-        { label: 'Baru…', icon: 'filePlus', action: newImage },
-        { label: 'Buka…', icon: 'open', shortcut: 'Ctrl+O', action: openImage },
-        { label: 'Simpan', icon: 'save', shortcut: 'Ctrl+S', action: save },
-        { label: 'Simpan sebagai…', icon: 'save', action: saveAs },
+        { label: t('menu.new'), icon: 'filePlus', action: newImage },
+        { label: t('menu.open'), icon: 'open', shortcut: 'Ctrl+O', action: openImage },
+        { label: t('menu.save'), icon: 'save', shortcut: 'Ctrl+S', action: save },
+        { label: t('menu.saveAs'), icon: 'save', action: saveAs },
         '-',
-        { label: 'Unduh sebagai PNG', icon: 'download', action: () => OS.utils.download(path ? vfs.basename(path) : 'gambar.png', canvas.toDataURL('image/png')) },
-        { label: 'Jadikan wallpaper', icon: 'image', action: setWallpaper },
+        { label: t('menu.download'), icon: 'download', action: () => OS.utils.download(path ? vfs.basename(path) : t('untitledFile'), canvas.toDataURL('image/png')) },
+        { label: t('menu.wallpaper'), icon: 'image', action: setWallpaper },
         '-',
-        { label: 'Bersihkan kanvas', icon: 'trash', danger: true, action: clear },
+        { label: t('menu.clear'), icon: 'trash', danger: true, action: clear },
       ]);
     });
 
@@ -120,7 +123,8 @@
       if (tool === 'eraser') setTool('pencil');
     }
 
-    const updateTitle = () => win.setTitle(`${dirty ? '● ' : ''}${path ? vfs.basename(path) : 'Tanpa judul'} — Paint`);
+    const name = () => (path ? vfs.basename(path) : t('untitled'));
+    const updateTitle = () => win.setTitle(`${dirty ? '● ' : ''}${t('windowTitle', { file: name() })}`);
 
     function markDirty() {
       if (!dirty) { dirty = true; updateTitle(); }
@@ -145,7 +149,7 @@
       if (img.width !== canvas.width || img.height !== canvas.height) {
         canvas.width = img.width;
         canvas.height = img.height;
-        sizeEl.textContent = `${img.width} × ${img.height} px`;
+        sizeEl.textContent = t('status.size', { width: img.width, height: img.height });
       }
       ctx.putImageData(img, 0, 0);
       markDirty();
@@ -281,7 +285,7 @@
     });
     canvas.addEventListener('pointermove', (e) => {
       const p = point(e);
-      posEl.textContent = `${Math.round(p.x)}, ${Math.round(p.y)} px`;
+      posEl.textContent = t('status.position', { x: Math.round(p.x), y: Math.round(p.y) });
     });
     canvas.addEventListener('pointerleave', () => { posEl.textContent = ''; });
 
@@ -290,13 +294,13 @@
     async function confirmDiscard() {
       if (!dirty) return true;
       const { button } = await OS.ui.dialog({
-        title: 'Paint',
-        message: `Simpan perubahan pada "${path ? vfs.basename(path) : 'Tanpa judul'}"?`,
+        title: t('name'),
+        message: t('dialogs.unsaved', { file: name() }),
         icon: 'warning',
         buttons: [
-          { label: 'Simpan', value: 'save', primary: true },
-          { label: 'Jangan simpan', value: 'discard' },
-          { label: 'Batal', value: null, cancel: true },
+          { label: t('dialogs.save'), value: 'save', primary: true },
+          { label: t('dialogs.dontSave'), value: 'discard' },
+          { label: t('dialogs.cancel'), value: null, cancel: true },
         ],
       });
       if (button === 'save') return save();
@@ -305,7 +309,7 @@
 
     async function newImage() {
       if (!(await confirmDiscard())) return;
-      const answer = await OS.ui.prompt('Ukuran kanvas (lebar × tinggi):', `${canvas.width}x${canvas.height}`, { title: 'Gambar baru' });
+      const answer = await OS.ui.prompt(t('dialogs.newSize'), `${canvas.width}x${canvas.height}`, { title: t('dialogs.newTitle') });
       if (answer == null) return;
       const m = /(\d+)\s*[x×*,]\s*(\d+)/i.exec(answer);
       const w = m ? Math.min(3000, Math.max(16, +m[1])) : 960;
@@ -322,7 +326,7 @@
 
     function loadFrom(p) {
       let data;
-      try { data = vfs.readFile(p); } catch (err) { OS.ui.showError(err, 'Tidak dapat membuka'); return; }
+      try { data = vfs.readFile(p); } catch (err) { OS.ui.showError(err, t('errors.open')); return; }
       if (data.trim().startsWith('<')) data = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(data)}`;
       const img = new Image();
       img.onload = () => {
@@ -336,13 +340,13 @@
         dirty = false;
         updateTitle();
       };
-      img.onerror = () => OS.ui.alert('Berkas ini bukan gambar yang valid.', { title: 'Paint', icon: 'warning' });
+      img.onerror = () => OS.ui.alert(t('dialogs.invalidImage'), { title: t('name'), icon: 'warning' });
       img.src = data;
     }
 
     async function openImage() {
       if (!(await confirmDiscard())) return;
-      const chosen = await OS.ui.pickFile({ mode: 'open', startDir: `${vfs.HOME}/Gambar`, extensions: IMAGE_EXT });
+      const chosen = await OS.ui.pickFile({ mode: 'open', startDir: `${vfs.HOME}/Pictures`, extensions: IMAGE_EXT });
       if (chosen) loadFrom(chosen);
     }
 
@@ -351,14 +355,14 @@
       try {
         vfs.writeFile(target, canvas.toDataURL('image/png'));
       } catch (err) {
-        OS.ui.showError(err, 'Tidak dapat menyimpan');
+        OS.ui.showError(err, t('errors.save'));
         return false;
       }
       path = vfs.resolve(target);
       win.filePath = path;
       dirty = false;
       updateTitle();
-      OS.notify({ title: 'Gambar tersimpan', body: path.replace(vfs.HOME, '~'), app: 'paint', timeout: 3000 });
+      OS.notify({ title: t('notify.saved'), body: path.replace(vfs.HOME, '~'), app: 'paint', timeout: 3000 });
       return true;
     }
 
@@ -370,8 +374,8 @@
     async function saveAs() {
       const target = await OS.ui.pickFile({
         mode: 'save',
-        startDir: path ? vfs.dirname(path) : `${vfs.HOME}/Gambar`,
-        defaultName: path ? vfs.basename(path).replace(/\.[^.]+$/, '.png') : 'Gambar.png',
+        startDir: path ? vfs.dirname(path) : `${vfs.HOME}/Pictures`,
+        defaultName: path ? vfs.basename(path).replace(/\.[^.]+$/, '.png') : t('untitledFile'),
         extensions: IMAGE_EXT,
       });
       if (!target) return false;
@@ -387,8 +391,8 @@
 
     function setWallpaper() {
       const ok = OS.settings.setCustomWallpaper(canvas.toDataURL('image/jpeg', 0.9));
-      if (ok) OS.notify({ title: 'Wallpaper diperbarui', body: 'Gambar dari Paint kini menjadi latar desktop.', app: 'paint' });
-      else OS.ui.alert('Penyimpanan browser penuh, wallpaper tidak dapat disimpan.', { title: 'Paint', icon: 'warning' });
+      if (ok) OS.notify({ title: t('notify.wallpaper'), body: t('notify.wallpaperBody'), app: 'paint' });
+      else OS.ui.alert(t('dialogs.storageFull'), { title: t('name'), icon: 'warning' });
     }
 
     win.el.addEventListener('keydown', (e) => {
@@ -399,10 +403,10 @@
       else if (ctrl && k === 's') { e.preventDefault(); save(); }
       else if (ctrl && k === 'o') { e.preventDefault(); openImage(); }
       else if (!ctrl && !e.altKey && e.target.tagName !== 'INPUT') {
-        const t = TOOLS.find((x) => x.key === k);
-        if (t) setTool(t.id);
-        if (e.key === '[') { size = Math.max(1, size - 1); sizeInput.value = size; sizeOut.textContent = `${size}px`; }
-        if (e.key === ']') { size = Math.min(60, size + 1); sizeInput.value = size; sizeOut.textContent = `${size}px`; }
+        const hit = TOOLS.find((x) => x.key === k);
+        if (hit) setTool(hit.id);
+        if (e.key === '[') { size = Math.max(1, size - 1); sizeInput.value = size; sizeOut.textContent = sizeLabel(); }
+        if (e.key === ']') { size = Math.min(60, size + 1); sizeInput.value = size; sizeOut.textContent = sizeLabel(); }
       }
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -418,9 +422,7 @@
 
   OS.apps.register({
     id: 'paint',
-    name: 'Paint',
-    description: 'Menggambar dan mengedit gambar',
-    keywords: ['draw', 'gambar', 'lukis', 'image'],
+    languages: ['en'],
     icon: 'palette',
     colors: ['#f472b6', '#db2777'],
     width: 980,

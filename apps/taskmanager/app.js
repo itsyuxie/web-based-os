@@ -2,8 +2,10 @@
 (function () {
   'use strict';
   const OS = window.OS;
+  const t = OS.i18n.forApp('taskmanager');
   const { h, escapeHtml, formatBytes } = OS.utils;
   const BOOT = Date.now();
+  const STORAGE_LIMIT = 5 * 1024 * 1024;
 
   function launch(win) {
     let selectedId = null;
@@ -13,8 +15,8 @@
     let lastSample = performance.now();
 
     const tbody = h('tbody');
-    const endBtn = h('button', { class: 'btn', text: 'Akhiri tugas', disabled: true });
-    const switchBtn = h('button', { class: 'btn', text: 'Beralih ke', disabled: true });
+    const endBtn = h('button', { class: 'btn', text: t('footer.endTask'), disabled: true });
+    const switchBtn = h('button', { class: 'btn', text: t('footer.switchTo'), disabled: true });
     const summary = h('span');
     const chart = h('canvas', { class: 'tm-chart', width: 600, height: 90 });
     const stats = h('div', { class: 'tm-stats' });
@@ -22,12 +24,12 @@
     win.body.classList.add('taskmanager');
     win.body.append(
       h('div', { class: 'tm-perf' },
-        h('div', { class: 'tm-perf-head' }, h('strong', { text: 'Kinerja' }), h('span', { class: 'tm-fps' })),
+        h('div', { class: 'tm-perf-head' }, h('strong', { text: t('performance') }), h('span', { class: 'tm-fps' })),
         chart,
         stats),
       h('div', { class: 'tm-table-wrap' },
         h('table', { class: 'tm-table' },
-          h('thead', {}, h('tr', {}, h('th', { text: 'Aplikasi' }), h('th', { text: 'Jendela' }), h('th', { text: 'Status' }))),
+          h('thead', {}, h('tr', {}, h('th', { text: t('columns.app') }), h('th', { text: t('columns.window') }), h('th', { text: t('columns.status') }))),
           tbody)),
       h('div', { class: 'tm-footer' }, summary, h('span', { class: 'spacer' }), switchBtn, endBtn)
     );
@@ -37,17 +39,17 @@
       if (!wins.some((w) => w.id === selectedId)) selectedId = null;
       tbody.innerHTML = '';
       wins.forEach((w) => {
-        const status = w === OS.wm.active() ? 'Aktif' : w.minimized ? 'Diminimalkan' : 'Berjalan';
+        const status = t(w === OS.wm.active() ? 'status.active' : w.minimized ? 'status.minimized' : 'status.running');
         const tr = h('tr', {
           class: w.id === selectedId ? 'selected' : '',
-          html: `<td><span class="tm-app">${OS.icons.appIcon(w.app, 'xs')}${escapeHtml(w.app.name)}</span></td><td>${escapeHtml(w.title)}</td><td>${status}</td>`,
+          html: `<td><span class="tm-app">${OS.icons.appIcon(w.app, 'xs')}${escapeHtml(w.app.name)}</span></td><td>${escapeHtml(w.title)}</td><td>${escapeHtml(status)}</td>`,
         });
         tr.addEventListener('click', () => { selectedId = w.id; renderTable(); });
         tr.addEventListener('dblclick', () => w.focus());
         tbody.appendChild(tr);
       });
       const apps = new Set(wins.map((w) => w.appId)).size;
-      summary.textContent = `${apps} aplikasi · ${wins.length} jendela`;
+      summary.textContent = t('footer.summary', { apps: t('footer.apps', { count: apps }), windows: t('footer.windows', { count: wins.length }) });
       endBtn.disabled = switchBtn.disabled = !selectedId;
     }
 
@@ -91,13 +93,13 @@
       const mem = performance.memory;
       const up = Math.floor((Date.now() - BOOT) / 1000);
       const items = [
-        ['FPS', fpsHistory.length ? String(fpsHistory[fpsHistory.length - 1]) : '—'],
-        ['Memori JS', mem ? `${formatBytes(mem.usedJSHeapSize)}` : 'Tidak tersedia'],
-        ['Penyimpanan', `${formatBytes(OS.storage.usage())} / 5 MB`],
-        ['Inti CPU', String(navigator.hardwareConcurrency || '?')],
-        ['Waktu aktif', `${Math.floor(up / 3600)}j ${Math.floor((up % 3600) / 60)}m ${up % 60}d`],
+        [t('stats.fps'), fpsHistory.length ? String(fpsHistory[fpsHistory.length - 1]) : '—'],
+        [t('stats.memory'), mem ? formatBytes(mem.usedJSHeapSize, t.locale) : t('stats.notAvailable')],
+        [t('stats.storage'), t('stats.storageValue', { used: formatBytes(OS.storage.usage(), t.locale), total: formatBytes(STORAGE_LIMIT, t.locale) })],
+        [t('stats.cpuCores'), String(navigator.hardwareConcurrency || '?')],
+        [t('stats.uptime'), t('stats.uptimeValue', { h: Math.floor(up / 3600), m: Math.floor((up % 3600) / 60), s: up % 60 })],
       ];
-      stats.innerHTML = items.map(([k, v]) => `<div><span>${k}</span><strong>${escapeHtml(v)}</strong></div>`).join('');
+      stats.innerHTML = items.map(([k, v]) => `<div><span>${escapeHtml(k)}</span><strong>${escapeHtml(v)}</strong></div>`).join('');
     }
 
     function loop(now) {
@@ -131,9 +133,7 @@
 
   OS.apps.register({
     id: 'taskmanager',
-    name: 'Pengelola Tugas',
-    description: 'Lihat dan tutup aplikasi yang berjalan',
-    keywords: ['task', 'process', 'proses', 'kinerja'],
+    languages: ['en'],
     icon: 'activity',
     colors: ['#60a5fa', '#7c3aed'],
     width: 620,

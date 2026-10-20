@@ -1,51 +1,39 @@
-/* AwanOS — Terminal (awsh) */
+/* AwanOS — Terminal */
 (function () {
   'use strict';
   const OS = window.OS;
+  const t = OS.i18n.forApp('terminal');
   const { h, escapeHtml, splitArgs, formatBytes, formatDate, extname } = OS.utils;
   const vfs = OS.vfs;
   const BOOT_TIME = Date.now();
 
-  const PROVERBS = [
-    'Sedikit demi sedikit, lama-lama menjadi bukit.',
-    'Air beriak tanda tak dalam.',
-    'Bersatu kita teguh, bercerai kita runtuh.',
-    'Di mana bumi dipijak, di situ langit dijunjung.',
-    'Berakit-rakit ke hulu, berenang-renang ke tepian.',
-    'Malu bertanya sesat di jalan.',
-    'Tak ada gading yang tak retak.',
-    'Ada udang di balik batu.',
-    'Hemat pangkal kaya, rajin pangkal pandai.',
-    'Seperti padi, makin berisi makin merunduk.',
-  ];
-
   /* Safe arithmetic evaluator for `calc` ------------------------------- */
   function evaluate(expr) {
     const tokens = expr.match(/\d*\.?\d+(?:e[+-]?\d+)?|[a-z]+|\*\*|[-+*/%^(),]/gi);
-    if (!tokens || tokens.join('') !== expr.replace(/\s+/g, '')) throw new Error('Ekspresi tidak valid');
+    if (!tokens || tokens.join('') !== expr.replace(/\s+/g, '')) throw new Error(t('calc.invalid'));
     let i = 0;
     const FUNCS = { sqrt: Math.sqrt, sin: Math.sin, cos: Math.cos, tan: Math.tan, abs: Math.abs, log: Math.log10, ln: Math.log, round: Math.round, floor: Math.floor, ceil: Math.ceil, exp: Math.exp };
     const CONSTS = { pi: Math.PI, e: Math.E };
     const peek = () => tokens[i];
     const next = () => tokens[i++];
     function primary() {
-      const t = next();
-      if (t === undefined) throw new Error('Ekspresi tidak lengkap');
-      if (t === '(') {
+      const tok = next();
+      if (tok === undefined) throw new Error(t('calc.incomplete'));
+      if (tok === '(') {
         const v = additive();
-        if (next() !== ')') throw new Error('Kurung tutup ")" hilang');
+        if (next() !== ')') throw new Error(t('calc.missingParen'));
         return v;
       }
-      if (/^\d|^\./.test(t)) return parseFloat(t);
-      const name = t.toLowerCase();
+      if (/^\d|^\./.test(tok)) return parseFloat(tok);
+      const name = tok.toLowerCase();
       if (name in CONSTS) return CONSTS[name];
       if (name in FUNCS) {
-        if (next() !== '(') throw new Error(`"${name}" harus diikuti "("`);
+        if (next() !== '(') throw new Error(t('calc.needsParen', { name }));
         const v = additive();
-        if (next() !== ')') throw new Error('Kurung tutup ")" hilang');
+        if (next() !== ')') throw new Error(t('calc.missingParen'));
         return FUNCS[name](v);
       }
-      throw new Error(`Simbol tidak dikenal: ${t}`);
+      throw new Error(t('calc.unknownSymbol', { symbol: tok }));
     }
     function power() {
       const base = primary();
@@ -79,7 +67,7 @@
       return v;
     }
     const result = additive();
-    if (i < tokens.length) throw new Error(`Token tak terduga: ${tokens[i]}`);
+    if (i < tokens.length) throw new Error(t('calc.unexpectedToken', { token: tokens[i] }));
     return result;
   }
 
@@ -109,7 +97,7 @@
 
     const out = h('div', { class: 'term-output' });
     const promptEl = h('span', { class: 'term-prompt' });
-    const input = h('input', { class: 'term-input', spellcheck: false, autocomplete: 'off', autocapitalize: 'off', 'aria-label': 'Perintah terminal' });
+    const input = h('input', { class: 'term-input', spellcheck: false, autocomplete: 'off', autocapitalize: 'off', 'aria-label': t('inputLabel') });
     const line = h('div', { class: 'term-line' }, promptEl, input);
     const screen = h('div', { class: 'term' }, out, line);
     win.body.classList.add('terminal');
@@ -135,7 +123,7 @@
       screen.scrollTop = screen.scrollHeight;
     }
 
-    const toScreen = (text, cls) => writeLines(String(text).split('\n').map((t) => ({ text: t, cls })));
+    const toScreen = (text, cls) => writeLines(String(text).split('\n').map((ln) => ({ text: ln, cls })));
 
     /* Commands --------------------------------------------------------- */
 
@@ -143,42 +131,42 @@
 
     const COMMANDS = {
       help: {
-        desc: 'Tampilkan daftar perintah',
+        desc: t('commands.help.desc'),
         run(a, io) {
           if (a[0] && COMMANDS[a[0]]) {
             io.print(`${a[0]} — ${COMMANDS[a[0]].desc}`);
-            if (COMMANDS[a[0]].usage) io.print(`Penggunaan: ${COMMANDS[a[0]].usage}`);
+            if (COMMANDS[a[0]].usage) io.print(t('help.usage', { usage: COMMANDS[a[0]].usage }));
             return;
           }
-          io.print('Perintah yang tersedia:', 't-bold');
+          io.print(t('help.available'), 't-bold');
           Object.keys(COMMANDS).sort().forEach((name) => {
             io.html(`  <span class="t-cyan">${name.padEnd(10).replace(/ /g, '&nbsp;')}</span>${escapeHtml(COMMANDS[name].desc)}`, `${name.padEnd(10)}${COMMANDS[name].desc}`);
           });
           io.print('');
-          io.print('Tips: Tab untuk melengkapi, ↑/↓ untuk riwayat, Ctrl+L untuk membersihkan layar.');
-          io.print('Mendukung pipa (|), pengalihan (> dan >>), dan rantai (&&, ||, ;), contoh: ls | grep txt > daftar.txt');
+          io.print(t('help.tips'));
+          io.print(t('help.operators'));
         },
       },
       ls: {
-        desc: 'Daftar isi direktori',
-        usage: 'ls [-l] [-a] [direktori...]',
+        desc: t('commands.ls.desc'),
+        usage: t('commands.ls.usage'),
         run(a, io) {
           const { flags, rest } = parseFlags(a, []);
           const targets = rest.length ? rest : ['.'];
-          targets.forEach((t, idx) => {
-            const p = resolve(t);
+          targets.forEach((target, idx) => {
+            const p = resolve(target);
             const st = vfs.stat(p);
-            if (!st) return io.error(`ls: tidak dapat mengakses '${t}': Tidak ada berkas atau direktori`);
-            if (targets.length > 1) io.print(`${idx ? '\n' : ''}${t}:`);
+            if (!st) return io.error(t('ls.cannotAccess', { path: target }));
+            if (targets.length > 1) io.print(`${idx ? '\n' : ''}${target}:`);
             let entries = st.type === 'dir' ? vfs.readdir(p) : [{ name: vfs.basename(p), type: 'file', size: st.size, mtime: st.mtime }];
             if (!flags.has('a')) entries = entries.filter((e) => !e.name.startsWith('.'));
             if (flags.has('l')) {
-              io.print(`total ${entries.length}`);
+              io.print(t('ls.total', { count: entries.length }));
               entries.forEach((e) => {
-                const size = e.type === 'dir' ? '-' : formatBytes(e.size);
+                const size = e.type === 'dir' ? '-' : formatBytes(e.size, t.locale);
                 const name = e.type === 'dir' ? `<span class="t-blue">${escapeHtml(e.name)}/</span>` : colorFile(e.name);
-                const plain = `${e.type === 'dir' ? 'd' : '-'}rw-r--r--  ${size.padStart(9)}  ${formatDate(e.mtime)}  ${e.name}`;
-                io.html(`${e.type === 'dir' ? 'd' : '-'}rw-r--r--  ${escapeHtml(size.padStart(9)).replace(/ /g, '&nbsp;')}  <span class="t-dim">${escapeHtml(formatDate(e.mtime))}</span>  ${name}`, plain);
+                const plain = `${e.type === 'dir' ? 'd' : '-'}rw-r--r--  ${size.padStart(9)}  ${formatDate(e.mtime, t.locale)}  ${e.name}`;
+                io.html(`${e.type === 'dir' ? 'd' : '-'}rw-r--r--  ${escapeHtml(size.padStart(9)).replace(/ /g, '&nbsp;')}  <span class="t-dim">${escapeHtml(formatDate(e.mtime, t.locale))}</span>  ${name}`, plain);
               });
             } else if (entries.length) {
               const html = entries.map((e) => (e.type === 'dir' ? `<span class="t-blue">${escapeHtml(e.name)}/</span>` : colorFile(e.name))).join('&nbsp;&nbsp;&nbsp;');
@@ -188,20 +176,20 @@
         },
       },
       cd: {
-        desc: 'Pindah direktori',
-        usage: 'cd [direktori | - | ~]',
+        desc: t('commands.cd.desc'),
+        usage: t('commands.cd.usage'),
         run(a, io) {
           const target = a[0] === '-' ? prevCwd : resolve(a[0] || '~');
-          if (!vfs.exists(target)) return io.error(`cd: ${a[0]}: Tidak ada berkas atau direktori`);
-          if (!vfs.isDir(target)) return io.error(`cd: ${a[0]}: Bukan direktori`);
+          if (!vfs.exists(target)) return io.error(t('cd.noSuchFile', { path: a[0] }));
+          if (!vfs.isDir(target)) return io.error(t('cd.notDir', { path: a[0] }));
           prevCwd = cwd;
           cwd = target;
         },
       },
-      pwd: { desc: 'Tampilkan direktori saat ini', run: (a, io) => io.print(cwd) },
+      pwd: { desc: t('commands.pwd.desc'), run: (a, io) => io.print(cwd) },
       cat: {
-        desc: 'Tampilkan isi berkas',
-        usage: 'cat berkas...',
+        desc: t('commands.cat.desc'),
+        usage: t('commands.cat.usage'),
         run(a, io) {
           if (!a.length) {
             if (io.stdin != null) io.print(io.stdin.replace(/\n$/, ''));
@@ -210,7 +198,7 @@
           a.forEach((f) => {
             try {
               const c = vfs.readFile(resolve(f));
-              if (/^data:[^,]*;base64,/.test(c)) io.error(`cat: ${f}: berkas biner`);
+              if (/^data:[^,]*;base64,/.test(c)) io.error(t('cat.binary', { file: f }));
               else io.print(c.replace(/\n$/, ''));
             } catch (err) {
               io.error(`cat: ${f}: ${err.message}`);
@@ -218,23 +206,23 @@
           });
         },
       },
-      echo: { desc: 'Cetak teks', usage: 'echo teks...', run: (a, io) => io.print(a.join(' ')) },
+      echo: { desc: t('commands.echo.desc'), usage: t('commands.echo.usage'), run: (a, io) => io.print(a.join(' ')) },
       mkdir: {
-        desc: 'Buat direktori',
-        usage: 'mkdir [-p] direktori...',
+        desc: t('commands.mkdir.desc'),
+        usage: t('commands.mkdir.usage'),
         run(a, io) {
           const { flags, rest } = parseFlags(a, []);
-          if (!rest.length) return io.error('mkdir: operand hilang');
+          if (!rest.length) return io.error(t('errors.missingOperand', { command: 'mkdir' }));
           rest.forEach((d) => {
             try { vfs.mkdir(resolve(d), { recursive: flags.has('p') }); } catch (err) { io.error(`mkdir: ${err.message}`); }
           });
         },
       },
       touch: {
-        desc: 'Buat berkas kosong',
-        usage: 'touch berkas...',
+        desc: t('commands.touch.desc'),
+        usage: t('commands.touch.usage'),
         run(a, io) {
-          if (!a.length) return io.error('touch: operand berkas hilang');
+          if (!a.length) return io.error(t('touch.missingFile'));
           a.forEach((f) => {
             const p = resolve(f);
             try { vfs.writeFile(p, vfs.isFile(p) ? vfs.readFile(p) : ''); } catch (err) { io.error(`touch: ${err.message}`); }
@@ -242,36 +230,36 @@
         },
       },
       rm: {
-        desc: 'Hapus berkas atau direktori',
-        usage: 'rm [-r] [-f] jalur...',
+        desc: t('commands.rm.desc'),
+        usage: t('commands.rm.usage'),
         run(a, io) {
           const { flags, rest } = parseFlags(a, []);
-          if (!rest.length) return io.error('rm: operand hilang');
+          if (!rest.length) return io.error(t('errors.missingOperand', { command: 'rm' }));
           rest.forEach((f) => {
             const p = resolve(f);
-            if (!vfs.exists(p)) { if (!flags.has('f')) io.error(`rm: tidak dapat menghapus '${f}': Tidak ada berkas atau direktori`); return; }
-            if (vfs.isDir(p) && !flags.has('r')) return io.error(`rm: tidak dapat menghapus '${f}': Ini direktori (gunakan -r)`);
-            if (p === '/' || p === vfs.HOME) return io.error(`rm: menolak menghapus '${p}'`);
+            if (!vfs.exists(p)) { if (!flags.has('f')) io.error(t('rm.noSuchFile', { path: f })); return; }
+            if (vfs.isDir(p) && !flags.has('r')) return io.error(t('rm.isDir', { path: f }));
+            if (p === '/' || p === vfs.HOME) return io.error(t('rm.refuse', { path: p }));
             try { vfs.remove(p); } catch (err) { io.error(`rm: ${err.message}`); }
           });
         },
       },
       rmdir: {
-        desc: 'Hapus direktori kosong',
-        usage: 'rmdir direktori...',
+        desc: t('commands.rmdir.desc'),
+        usage: t('commands.rmdir.usage'),
         run(a, io) {
           a.forEach((d) => {
             const p = resolve(d);
-            if (!vfs.isDir(p)) return io.error(`rmdir: '${d}': Bukan direktori`);
+            if (!vfs.isDir(p)) return io.error(t('rmdir.notDir', { path: d }));
             try { vfs.remove(p, { recursive: false }); } catch (err) { io.error(`rmdir: ${err.message}`); }
           });
         },
       },
       mv: {
-        desc: 'Pindahkan atau ganti nama',
-        usage: 'mv sumber... tujuan',
+        desc: t('commands.mv.desc'),
+        usage: t('commands.mv.usage'),
         run(a, io) {
-          if (a.length < 2) return io.error('mv: operand hilang');
+          if (a.length < 2) return io.error(t('errors.missingOperand', { command: 'mv' }));
           const dest = resolve(a[a.length - 1]);
           const srcs = a.slice(0, -1);
           srcs.forEach((s) => {
@@ -282,15 +270,15 @@
         },
       },
       cp: {
-        desc: 'Salin berkas atau direktori',
-        usage: 'cp [-r] sumber... tujuan',
+        desc: t('commands.cp.desc'),
+        usage: t('commands.cp.usage'),
         run(a, io) {
           const { flags, rest } = parseFlags(a, []);
-          if (rest.length < 2) return io.error('cp: operand hilang');
+          if (rest.length < 2) return io.error(t('errors.missingOperand', { command: 'cp' }));
           const dest = resolve(rest[rest.length - 1]);
           rest.slice(0, -1).forEach((s) => {
             const src = resolve(s);
-            if (vfs.isDir(src) && !flags.has('r')) return io.error(`cp: -r tidak disebutkan; melewati direktori '${s}'`);
+            if (vfs.isDir(src) && !flags.has('r')) return io.error(t('cp.omitDir', { path: s }));
             const target = vfs.isDir(dest) ? vfs.join(dest, vfs.basename(src)) : dest;
             try {
               if (vfs.isFile(target)) vfs.remove(target);
@@ -300,11 +288,11 @@
         },
       },
       tree: {
-        desc: 'Tampilkan struktur direktori',
-        usage: 'tree [direktori]',
+        desc: t('commands.tree.desc'),
+        usage: t('commands.tree.usage'),
         run(a, io) {
           const root = resolve(a[0] || '.');
-          if (!vfs.isDir(root)) return io.error(`tree: ${a[0]}: bukan direktori`);
+          if (!vfs.isDir(root)) return io.error(t('tree.notDir', { path: a[0] }));
           let dirs = 0;
           let files = 0;
           io.html(`<span class="t-blue">${escapeHtml(a[0] || '.')}</span>`, a[0] || '.');
@@ -324,12 +312,12 @@
             });
           };
           walk(root, '');
-          io.print(`\n${dirs} direktori, ${files} berkas`);
+          io.print(`\n${t('tree.summary', { dirs: t('tree.dirs', { count: dirs }), files: t('tree.files', { count: files }) })}`);
         },
       },
       find: {
-        desc: 'Cari berkas berdasarkan nama',
-        usage: 'find [direktori] [pola]',
+        desc: t('commands.find.desc'),
+        usage: t('commands.find.usage'),
         run(a, io) {
           let base = '.';
           let pattern = '';
@@ -343,14 +331,14 @@
         },
       },
       grep: {
-        desc: 'Cari teks dalam berkas',
-        usage: 'grep [-i] [-n] pola [berkas...]',
+        desc: t('commands.grep.desc'),
+        usage: t('commands.grep.usage'),
         run(a, io) {
           const { flags, rest } = parseFlags(a, []);
           const [pattern, ...files] = rest;
-          if (!pattern) return io.error('grep: pola hilang');
+          if (!pattern) return io.error(t('grep.missingPattern'));
           let re;
-          try { re = new RegExp(pattern, flags.has('i') ? 'i' : ''); } catch (_) { return io.error('grep: pola tidak valid'); }
+          try { re = new RegExp(pattern, flags.has('i') ? 'i' : ''); } catch (_) { return io.error(t('grep.invalidPattern')); }
           const scan = (content, label) => {
             content.split('\n').forEach((ln, i) => {
               if (!re.test(ln)) return;
@@ -360,7 +348,7 @@
             });
           };
           if (!files.length) {
-            if (io.stdin == null) return io.error('grep: tidak ada masukan');
+            if (io.stdin == null) return io.error(t('errors.noInput', { command: 'grep' }));
             scan(io.stdin, '');
             return;
           }
@@ -370,8 +358,8 @@
         },
       },
       head: {
-        desc: 'Tampilkan baris pertama',
-        usage: 'head [-n N] [berkas]',
+        desc: t('commands.head.desc'),
+        usage: t('commands.head.usage'),
         run(a, io) {
           const { rest, opts } = parseFlags(a, ['n']);
           const text = readInput(rest[0], io, 'head');
@@ -379,8 +367,8 @@
         },
       },
       tail: {
-        desc: 'Tampilkan baris terakhir',
-        usage: 'tail [-n N] [berkas]',
+        desc: t('commands.tail.desc'),
+        usage: t('commands.tail.usage'),
         run(a, io) {
           const { rest, opts } = parseFlags(a, ['n']);
           const text = readInput(rest[0], io, 'tail');
@@ -388,39 +376,46 @@
         },
       },
       wc: {
-        desc: 'Hitung baris, kata, dan karakter',
-        usage: 'wc [berkas]',
+        desc: t('commands.wc.desc'),
+        usage: t('commands.wc.usage'),
         run(a, io) {
           const text = readInput(a[0], io, 'wc');
           if (text == null) return;
           const lines = text ? text.replace(/\n$/, '').split('\n').length : 0;
           const words = (text.match(/\S+/g) || []).length;
-          io.print(`${lines} baris  ${words} kata  ${text.length} karakter${a[0] ? '  ' + a[0] : ''}`);
+          const summary = t('wc.summary', {
+            lines: t('wc.lines', { count: lines }),
+            words: t('wc.words', { count: words }),
+            chars: t('wc.chars', { count: text.length }),
+          });
+          io.print(`${summary}${a[0] ? '  ' + a[0] : ''}`);
         },
       },
       sort: {
-        desc: 'Urutkan baris',
-        usage: 'sort [-r] [berkas]',
+        desc: t('commands.sort.desc'),
+        usage: t('commands.sort.usage'),
         run(a, io) {
           const { flags, rest } = parseFlags(a, []);
           const text = readInput(rest[0], io, 'sort');
           if (text == null) return;
-          const lines = text.replace(/\n$/, '').split('\n').sort((x, y) => x.localeCompare(y, 'id'));
+          const lines = text.replace(/\n$/, '').split('\n').sort((x, y) => x.localeCompare(y, t.locale));
           if (flags.has('r')) lines.reverse();
           io.print(lines.join('\n'));
         },
       },
-      clear: { desc: 'Bersihkan layar', run: () => { out.innerHTML = ''; } },
-      date: { desc: 'Tampilkan tanggal dan waktu', run: (a, io) => io.print(new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeStyle: 'long' }).format(new Date())) },
+      clear: { desc: t('commands.clear.desc'), run: () => { out.innerHTML = ''; } },
+      date: { desc: t('commands.date.desc'), run: (a, io) => io.print(new Intl.DateTimeFormat(t.locale, { dateStyle: 'full', timeStyle: 'long' }).format(new Date())) },
       cal: {
-        desc: 'Tampilkan kalender bulan ini',
+        desc: t('commands.cal.desc'),
         run(a, io) {
           const d = new Date();
           const first = new Date(d.getFullYear(), d.getMonth(), 1);
           const days = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-          const title = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(d);
+          const title = new Intl.DateTimeFormat(t.locale, { month: 'long', year: 'numeric' }).format(d);
           io.print(title.padStart(10 + Math.ceil(title.length / 2)));
-          io.print('Mi Sn Sl Rb Km Jm Sb');
+          // Two-letter weekday names, Sunday first (1 January 2023 was a Sunday).
+          const weekday = new Intl.DateTimeFormat(t.locale, { weekday: 'short' });
+          io.print(Array.from({ length: 7 }, (_, i) => weekday.format(new Date(2023, 0, 1 + i)).slice(0, 2).padEnd(2)).join(' '));
           let cells = Array(first.getDay()).fill('  ');
           const flush = () => {
             const html = cells.map((c) => {
@@ -437,34 +432,38 @@
           if (cells.length) flush();
         },
       },
-      whoami: { desc: 'Tampilkan nama pengguna', run: (a, io) => io.print(userName()) },
-      hostname: { desc: 'Tampilkan nama host', run: (a, io) => io.print('awanos') },
+      whoami: { desc: t('commands.whoami.desc'), run: (a, io) => io.print(userName()) },
+      hostname: { desc: t('commands.hostname.desc'), run: (a, io) => io.print('awanos') },
       uname: {
-        desc: 'Informasi sistem',
-        usage: 'uname [-a]',
+        desc: t('commands.uname.desc'),
+        usage: t('commands.uname.usage'),
         run: (a, io) => io.print(a.includes('-a') ? `AwanOS awanos ${OS.version} ${navigator.platform || 'web'} JavaScript` : 'AwanOS'),
       },
       uptime: {
-        desc: 'Lama sistem berjalan',
+        desc: t('commands.uptime.desc'),
         run(a, io) {
           const s = Math.floor((Date.now() - BOOT_TIME) / 1000);
-          io.print(`aktif ${Math.floor(s / 3600)} jam ${Math.floor((s % 3600) / 60)} menit ${s % 60} detik`);
+          io.print(t('uptime.summary', {
+            hours: t('uptime.hours', { count: Math.floor(s / 3600) }),
+            minutes: t('uptime.minutes', { count: Math.floor((s % 3600) / 60) }),
+            seconds: t('uptime.seconds', { count: s % 60 }),
+          }));
         },
       },
       history: {
-        desc: 'Riwayat perintah',
-        usage: 'history [-c]',
+        desc: t('commands.history.desc'),
+        usage: t('commands.history.usage'),
         run(a, io) {
           if (a[0] === '-c') { history.length = 0; hIdx = 0; OS.storage.write('terminal.history', history); return; }
           history.forEach((c, i) => io.print(`${String(i + 1).padStart(4)}  ${c}`));
         },
       },
       calc: {
-        desc: 'Kalkulator (mis. calc 2*(3+4)^2)',
-        usage: 'calc ekspresi',
+        desc: t('commands.calc.desc'),
+        usage: t('commands.calc.usage'),
         run(a, io) {
           const expr = a.join(' ');
-          if (!expr) return io.error('calc: ekspresi hilang');
+          if (!expr) return io.error(t('calc.missingExpression'));
           try {
             const r = evaluate(expr);
             io.print(Number.isFinite(r) ? String(parseFloat(r.toPrecision(12))) : String(r));
@@ -474,21 +473,21 @@
         },
       },
       open: {
-        desc: 'Buka berkas, folder, atau aplikasi',
-        usage: 'open jalur|aplikasi',
+        desc: t('commands.open.desc'),
+        usage: t('commands.open.usage'),
         run(a, io) {
-          if (!a.length) return io.error('open: operand hilang');
-          a.forEach((t) => {
-            const p = resolve(t);
+          if (!a.length) return io.error(t('errors.missingOperand', { command: 'open' }));
+          a.forEach((target) => {
+            const p = resolve(target);
             if (vfs.exists(p)) OS.apps.openPath(p);
-            else if (OS.apps.get(t)) OS.wm.open(t);
-            else io.error(`open: '${t}' bukan berkas maupun aplikasi`);
+            else if (OS.apps.get(target)) OS.wm.open(target);
+            else io.error(t('open.notFound', { target }));
           });
         },
       },
       edit: {
-        desc: 'Edit berkas di Notepad',
-        usage: 'edit berkas',
+        desc: t('commands.edit.desc'),
+        usage: t('commands.edit.usage'),
         run(a, io) {
           if (!a[0]) return OS.wm.open('notepad');
           const p = resolve(a[0]);
@@ -499,62 +498,62 @@
         },
       },
       apps: {
-        desc: 'Daftar aplikasi terpasang',
+        desc: t('commands.apps.desc'),
         run(a, io) {
           OS.apps.list().forEach((app) => io.html(`<span class="t-cyan">${app.id.padEnd(13).replace(/ /g, '&nbsp;')}</span>${escapeHtml(app.name)}`, `${app.id.padEnd(13)}${app.name}`));
         },
       },
       theme: {
-        desc: 'Ganti tema (light/dark)',
-        usage: 'theme [light|dark]',
+        desc: t('commands.theme.desc'),
+        usage: t('commands.theme.usage'),
         run(a, io) {
-          if (!a[0]) return io.print(`Tema saat ini: ${OS.settings.get('theme')}`);
-          if (!['light', 'dark'].includes(a[0])) return io.error('theme: gunakan "light" atau "dark"');
+          if (!a[0]) return io.print(t('theme.current', { theme: OS.settings.get('theme') }));
+          if (!['light', 'dark'].includes(a[0])) return io.error(t('theme.invalid'));
           OS.settings.set('theme', a[0]);
-          io.print(`Tema diubah ke ${a[0]}.`);
+          io.print(t('theme.changed', { theme: a[0] }));
         },
       },
       wallpaper: {
-        desc: 'Daftar atau ganti wallpaper',
-        usage: 'wallpaper [id]',
+        desc: t('commands.wallpaper.desc'),
+        usage: t('commands.wallpaper.usage'),
         run(a, io) {
           if (!a[0]) {
             OS.wallpapers.forEach((w) => io.print(`${w.id === OS.settings.get('wallpaper') ? '*' : ' '} ${w.id.padEnd(8)} ${w.name}`));
             return;
           }
-          if (!OS.wallpapers.some((w) => w.id === a[0])) return io.error(`wallpaper: '${a[0]}' tidak ditemukan`);
+          if (!OS.wallpapers.some((w) => w.id === a[0])) return io.error(t('wallpaper.notFound', { id: a[0] }));
           OS.settings.set('wallpaper', a[0]);
         },
       },
       notify: {
-        desc: 'Kirim notifikasi',
-        usage: 'notify pesan',
-        run: (a) => OS.notify({ title: 'Terminal', body: a.join(' ') || 'Halo!', app: 'terminal' }),
+        desc: t('commands.notify.desc'),
+        usage: t('commands.notify.usage'),
+        run: (a) => OS.notify({ title: t('name'), body: a.join(' ') || t('notify.defaultBody'), app: 'terminal' }),
       },
       df: {
-        desc: 'Pemakaian penyimpanan',
+        desc: t('commands.df.desc'),
         run(a, io) {
           const used = OS.storage.usage();
           const total = 5 * 1024 * 1024;
-          io.print('Sistem berkas      Ukuran   Terpakai  Sisa     Guna%');
-          io.print(`localStorage       ${formatBytes(total).padEnd(8)} ${formatBytes(used).padEnd(9)} ${formatBytes(Math.max(0, total - used)).padEnd(8)} ${Math.round((used / total) * 100)}%`);
+          io.print(`${t('df.filesystem').padEnd(18)} ${t('df.size').padEnd(8)} ${t('df.used').padEnd(9)} ${t('df.avail').padEnd(8)} ${t('df.usePercent')}`);
+          io.print(`localStorage       ${formatBytes(total, t.locale).padEnd(8)} ${formatBytes(used, t.locale).padEnd(9)} ${formatBytes(Math.max(0, total - used), t.locale).padEnd(8)} ${Math.round((used / total) * 100)}%`);
         },
       },
       du: {
-        desc: 'Ukuran berkas/direktori',
-        usage: 'du [jalur]',
+        desc: t('commands.du.desc'),
+        usage: t('commands.du.usage'),
         run(a, io) {
           const st = vfs.stat(resolve(a[0] || '.'));
-          if (!st) return io.error(`du: '${a[0]}': tidak ditemukan`);
-          io.print(`${formatBytes(st.size)}\t${a[0] || '.'}`);
+          if (!st) return io.error(t('du.notFound', { path: a[0] }));
+          io.print(`${formatBytes(st.size, t.locale)}\t${a[0] || '.'}`);
         },
       },
-      neofetch: { desc: 'Info sistem dengan gaya', run: (a, io) => neofetch(io) },
+      neofetch: { desc: t('commands.neofetch.desc'), run: (a, io) => neofetch(io) },
       cowsay: {
-        desc: 'Sapi yang bisa bicara',
-        usage: 'cowsay pesan',
+        desc: t('commands.cowsay.desc'),
+        usage: t('commands.cowsay.usage'),
         run(a, io) {
-          const msg = a.join(' ') || (io.stdin || '').trim() || 'Moo!';
+          const msg = a.join(' ') || (io.stdin || '').trim() || t('cowsay.default');
           const width = Math.min(40, msg.length);
           const lines = [];
           for (let i = 0; i < msg.length; i += width) lines.push(msg.slice(i, i + width).padEnd(width));
@@ -567,22 +566,28 @@
           io.print('        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\       )\\/\\\n                ||----w |\n                ||     ||');
         },
       },
-      peribahasa: { desc: 'Peribahasa acak', run: (a, io) => io.print(PROVERBS[Math.floor(Math.random() * PROVERBS.length)], 't-yellow') },
-      sudo: { desc: 'Jalankan sebagai admin', run: (a, io) => io.error(`${userName()} tidak ada dalam berkas sudoers. Kejadian ini akan dilaporkan. 😉`) },
-      lock: { desc: 'Kunci layar', run: () => OS.session.lock() },
-      reboot: { desc: 'Mulai ulang sistem', run: () => OS.session.restart() },
-      shutdown: { desc: 'Matikan sistem', run: () => OS.session.shutdown() },
-      exit: { desc: 'Tutup terminal', run: () => win.close() },
+      fortune: {
+        desc: t('commands.fortune.desc'),
+        run(a, io) {
+          const fortunes = t('fortunes');
+          io.print(fortunes[Math.floor(Math.random() * fortunes.length)], 't-yellow');
+        },
+      },
+      sudo: { desc: t('commands.sudo.desc'), run: (a, io) => io.error(t('sudo.denied', { user: userName() })) },
+      lock: { desc: t('commands.lock.desc'), run: () => OS.session.lock() },
+      reboot: { desc: t('commands.reboot.desc'), run: () => OS.session.restart() },
+      shutdown: { desc: t('commands.shutdown.desc'), run: () => OS.session.shutdown() },
+      exit: { desc: t('commands.exit.desc'), run: () => win.close() },
     };
-    COMMANDS.dir = { ...COMMANDS.ls, desc: 'Alias untuk ls' };
-    COMMANDS.cls = { ...COMMANDS.clear, desc: 'Alias untuk clear' };
-    COMMANDS.nano = { ...COMMANDS.edit, desc: 'Alias untuk edit' };
+    COMMANDS.dir = { ...COMMANDS.ls, desc: t('help.alias', { command: 'ls' }) };
+    COMMANDS.cls = { ...COMMANDS.clear, desc: t('help.alias', { command: 'clear' }) };
+    COMMANDS.nano = { ...COMMANDS.edit, desc: t('help.alias', { command: 'edit' }) };
 
     function readInput(file, io, cmd) {
       if (file) {
         try { return vfs.readFile(resolve(file)); } catch (err) { io.error(`${cmd}: ${file}: ${err.message}`); return null; }
       }
-      if (io.stdin == null) { io.error(`${cmd}: tidak ada masukan`); return null; }
+      if (io.stdin == null) { io.error(t('errors.noInput', { command: cmd })); return null; }
       return io.stdin;
     }
 
@@ -604,18 +609,19 @@
       ];
       const s = Math.floor((Date.now() - BOOT_TIME) / 1000);
       const ua = navigator.userAgent.match(/(Firefox|Edg|Chrome|Safari)\/[\d.]+/);
+      const label = (key, value) => `<span class="t-cyan">${escapeHtml(t(`neofetch.${key}`))}</span>: ${escapeHtml(String(value))}`;
       const info = [
         `<span class="t-cyan t-bold">${escapeHtml(userName())}</span>@<span class="t-cyan t-bold">awanos</span>`,
         '-----------------',
-        `<span class="t-cyan">OS</span>: AwanOS ${OS.version}`,
-        `<span class="t-cyan">Kernel</span>: ${escapeHtml(ua ? ua[0] : 'Browser')}`,
-        `<span class="t-cyan">Uptime</span>: ${Math.floor(s / 60)} menit`,
-        `<span class="t-cyan">Shell</span>: awsh 1.0`,
-        `<span class="t-cyan">Resolusi</span>: ${window.innerWidth}x${window.innerHeight}`,
-        `<span class="t-cyan">Tema</span>: ${OS.settings.get('theme') === 'dark' ? 'Gelap' : 'Terang'} · aksen ${escapeHtml(OS.settings.get('accent'))}`,
-        `<span class="t-cyan">Aplikasi</span>: ${OS.apps.list().length}`,
-        `<span class="t-cyan">Penyimpanan</span>: ${formatBytes(OS.storage.usage())} / 5 MB`,
-        `<span class="t-cyan">CPU</span>: ${navigator.hardwareConcurrency || '?'} inti`,
+        label('os', `AwanOS ${OS.version}`),
+        label('kernel', ua ? ua[0] : t('neofetch.browser')),
+        label('uptime', t('neofetch.uptimeValue', { count: Math.floor(s / 60) })),
+        label('shell', 'awsh 1.0'),
+        label('resolution', `${window.innerWidth}x${window.innerHeight}`),
+        label('theme', t('neofetch.themeValue', { mode: t(OS.settings.get('theme') === 'dark' ? 'neofetch.dark' : 'neofetch.light'), accent: OS.settings.get('accent') })),
+        label('apps', OS.apps.list().length),
+        label('storage', `${formatBytes(OS.storage.usage(), t.locale)} / 5 MB`),
+        label('cpu', navigator.hardwareConcurrency ? t('neofetch.cores', { count: navigator.hardwareConcurrency }) : '?'),
         '',
         ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'].map((c) => `<span style="background:${c}">&nbsp;&nbsp;&nbsp;</span>`).join(''),
       ];
@@ -667,7 +673,7 @@
       let ok = true;
       for (const { text, op } of splitOn(lineText, ['&&', '||', ';'])) {
         if (!text) {
-          if (op && op !== ';') { toScreen(`awsh: kesalahan sintaks di dekat "${op}"`, 't-red'); return; }
+          if (op && op !== ';') { toScreen(t('shell.syntaxError', { token: op }), 't-red'); return; }
           continue;
         }
         if (op === '&&' && !ok) continue;
@@ -684,30 +690,30 @@
       let ok = true;
       for (let s = 0; s < segments.length; s++) {
         let tokens = splitArgs(segments[s]);
-        if (!tokens.length) { toScreen('awsh: kesalahan sintaks di dekat "|"', 't-red'); return false; }
+        if (!tokens.length) { toScreen(t('shell.syntaxError', { token: '|' }), 't-red'); return false; }
         // Output redirection: "> file", ">> file", ">file"
         let redirect = null;
         const kept = [];
         for (let i = 0; i < tokens.length; i++) {
-          const t = tokens[i];
-          const m = /^(>>?)(.*)$/.exec(t);
+          const tok = tokens[i];
+          const m = /^(>>?)(.*)$/.exec(tok);
           if (m) {
             const target = m[2] || tokens[++i];
-            if (!target) { toScreen('awsh: kesalahan sintaks: target pengalihan hilang', 't-red'); return false; }
+            if (!target) { toScreen(t('shell.missingTarget'), 't-red'); return false; }
             redirect = { append: m[1] === '>>', target };
-          } else kept.push(t);
+          } else kept.push(tok);
         }
         tokens = kept;
         const [name, ...cmdArgs] = tokens;
         const cmd = COMMANDS[name];
         if (!cmd) {
-          toScreen(`awsh: ${name}: perintah tidak ditemukan. Ketik "help" untuk bantuan.`, 't-red');
+          toScreen(t('shell.notFound', { command: name }), 't-red');
           return false;
         }
         const buffer = [];
         const io = {
           stdin,
-          print: (text, cls) => String(text).split('\n').forEach((t) => buffer.push({ text: t, cls })),
+          print: (text, cls) => String(text).split('\n').forEach((ln) => buffer.push({ text: ln, cls })),
           html: (html, plain) => buffer.push({ html, text: plain != null ? plain : html.replace(/<[^>]+>/g, '') }),
           error: (text) => {
             ok = false;
@@ -844,9 +850,7 @@
 
   OS.apps.register({
     id: 'terminal',
-    name: 'Terminal',
-    description: 'Baris perintah awsh',
-    keywords: ['shell', 'console', 'cmd', 'bash', 'konsol'],
+    languages: ['en'],
     icon: 'terminal',
     colors: ['#334155', '#0f172a'],
     width: 720,

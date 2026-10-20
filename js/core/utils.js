@@ -70,16 +70,24 @@
   let uidSeq = 0;
   const uid = (prefix = 'id') => `${prefix}-${Date.now().toString(36)}-${(uidSeq++).toString(36)}`;
 
-  const numberFmt = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 });
-  function formatBytes(bytes) {
+  // Formatters default to the system language; apps shown in another language pass their own
+  // locale (t.locale). They are created on first use, after i18n has loaded.
+  const systemLocale = () => (OS.i18n ? OS.i18n.locale : 'en-US');
+  const formatters = new Map();
+  function formatter(kind, Ctor, options, locale = systemLocale()) {
+    const key = `${kind}|${locale}`;
+    if (!formatters.has(key)) formatters.set(key, new Ctor(locale, options));
+    return formatters.get(key);
+  }
+
+  function formatBytes(bytes, locale) {
     if (!bytes) return '0 B';
     const units = ['B', 'KB', 'MB', 'GB'];
     const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-    return `${numberFmt.format(bytes / Math.pow(1024, i))} ${units[i]}`;
+    return `${formatter('bytes', Intl.NumberFormat, { maximumFractionDigits: 1 }, locale).format(bytes / Math.pow(1024, i))} ${units[i]}`;
   }
 
-  const dateFmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
-  const formatDate = (ts) => dateFmt.format(new Date(ts));
+  const formatDate = (ts, locale) => formatter('date', Intl.DateTimeFormat, { dateStyle: 'medium', timeStyle: 'short' }, locale).format(new Date(ts));
 
   const encoder = new TextEncoder();
   /** Size in bytes of a stored file body (data URLs are measured by their decoded payload). */

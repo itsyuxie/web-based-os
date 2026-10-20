@@ -2,14 +2,17 @@
 (function () {
   'use strict';
   const OS = window.OS;
+  const t = OS.i18n.forApp('minesweeper');
   const { h } = OS.utils;
   const { glyph } = OS.icons;
 
+  // Level ids are kept as stored by earlier versions (Indonesian for beginner, intermediate and expert); `name` is the language key.
   const LEVELS = {
-    pemula: { label: 'Pemula', w: 9, h: 9, mines: 10 },
-    menengah: { label: 'Menengah', w: 16, h: 16, mines: 40 },
-    ahli: { label: 'Ahli', w: 30, h: 16, mines: 99 },
+    pemula: { name: 'beginner', w: 9, h: 9, mines: 10 },
+    menengah: { name: 'intermediate', w: 16, h: 16, mines: 40 },
+    ahli: { name: 'expert', w: 30, h: 16, mines: 99 },
   };
+  const levelName = (l) => t(`levels.${l.name}`);
   const CELL = 28;
 
   function launch(win) {
@@ -26,26 +29,29 @@
 
     const counter = h('div', { class: 'ms-lcd' });
     const clock = h('div', { class: 'ms-lcd' });
-    const face = h('button', { class: 'ms-face', title: 'Permainan baru', 'aria-label': 'Permainan baru' });
-    const flagBtn = h('button', { class: 'icon-btn ms-flagmode', title: 'Mode bendera (untuk layar sentuh)', html: glyph('flag') });
+    const face = h('button', { class: 'ms-face', title: t('toolbar.newGame'), 'aria-label': t('toolbar.newGame') });
+    const flagBtn = h('button', { class: 'icon-btn ms-flagmode', title: t('toolbar.flagMode'), html: glyph('flag') });
     const board = h('div', { class: 'ms-board', role: 'grid' });
 
-    const menuBtn = h('button', { class: 'menubar-item', text: 'Permainan' });
+    const menuBtn = h('button', { class: 'menubar-item', text: t('menu.game') });
     menuBtn.addEventListener('click', () => {
       const r = menuBtn.getBoundingClientRect();
       const best = OS.storage.read('minesweeper.best', {});
       OS.ui.contextMenu(r.left, r.bottom + 2, [
-        { label: 'Permainan baru', icon: 'refresh', shortcut: 'F2', action: reset },
+        { label: t('menu.newGame'), icon: 'refresh', shortcut: 'F2', action: reset },
         '-',
         ...Object.entries(LEVELS).map(([id, l]) => ({
-          label: `${l.label} (${l.w}×${l.h}, ${l.mines} ranjau)`,
+          label: t('menu.level', { level: levelName(l), width: l.w, height: l.h, count: l.mines }),
           checked: id === level,
           action: () => { level = id; OS.storage.write('minesweeper.level', id); reset(); },
         })),
         '-',
         {
-          label: 'Rekor terbaik', icon: 'info',
-          action: () => OS.ui.alert(Object.entries(LEVELS).map(([id, l]) => `${l.label}: ${best[id] ? best[id] + ' detik' : '—'}`).join('\n'), { title: 'Rekor terbaik', icon: 'info' }),
+          label: t('menu.bestTimes'), icon: 'info',
+          action: () => OS.ui.alert(Object.entries(LEVELS).map(([id, l]) => t('bestTimes.line', {
+            level: levelName(l),
+            time: best[id] ? t('bestTimes.seconds', { count: best[id] }) : t('bestTimes.none'),
+          })).join('\n'), { title: t('bestTimes.title'), icon: 'info' }),
         },
       ]);
     });
@@ -74,14 +80,14 @@
       board.innerHTML = '';
       board.style.gridTemplateColumns = `repeat(${L.w}, ${CELL}px)`;
       cells.forEach((c) => {
-        c.el = h('button', { class: 'ms-cell', role: 'gridcell', 'aria-label': `Kotak ${c.x + 1},${c.y + 1}` });
+        c.el = h('button', { class: 'ms-cell', role: 'gridcell', 'aria-label': t('cell', { x: c.x + 1, y: c.y + 1 }) });
         c.el.dataset.i = c.i;
         board.appendChild(c.el);
       });
       counter.textContent = lcd(L.mines);
       clock.textContent = lcd(0);
       setFace('smile');
-      win.setTitle(`Minesweeper — ${L.label}`);
+      win.setTitle(t('windowTitle', { level: levelName(L) }));
       fitWindow();
     }
 
@@ -185,7 +191,7 @@
         best[level] = seconds;
         OS.storage.write('minesweeper.best', best);
       }
-      OS.notify({ title: record ? 'Rekor baru! 🎉' : 'Kamu menang!', body: `${L.label} selesai dalam ${seconds} detik.`, app: 'minesweeper' });
+      OS.notify({ title: record ? t('win.record') : t('win.title'), body: t('win.body', { level: levelName(L), count: seconds }), app: 'minesweeper' });
     }
 
     function open(c) {
@@ -258,9 +264,7 @@
 
   OS.apps.register({
     id: 'minesweeper',
-    name: 'Minesweeper',
-    description: 'Permainan klasik mencari ranjau',
-    keywords: ['game', 'permainan', 'ranjau', 'mines'],
+    languages: ['en'],
     icon: 'bomb',
     colors: ['#94a3b8', '#475569'],
     width: 300,

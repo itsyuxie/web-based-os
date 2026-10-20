@@ -1,4 +1,4 @@
-/* AwanOS — Penjelajah Berkas */
+/* AwanOS — File Explorer */
 
 .explorer .fx-address { flex: 1; min-width: 100px; }
 .explorer .fx-search { width: 190px; flex: none; }
@@ -70,7 +70,7 @@
 
 .view-list .fx-row {
   display: grid;
-  grid-template-columns: minmax(160px, 3fr) minmax(120px, 1.4fr) minmax(110px, 1.4fr) 80px;
+  grid-template-columns: minmax(160px, 2.6fr) minmax(150px, 1.5fr) minmax(120px, 1.5fr) 80px;
   gap: 12px;
   align-items: center;
   padding: 4px 10px;

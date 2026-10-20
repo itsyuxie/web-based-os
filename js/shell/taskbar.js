@@ -11,11 +11,15 @@
   let clockBtn;
   const buttons = new Map(); // appId -> button
 
-  const timeFmt = (withSeconds) => new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', second: withSeconds ? '2-digit' : undefined });
-  const shortDateFmt = new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const longDateFmt = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  const monthFmt = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' });
-  const relFmt = new Intl.RelativeTimeFormat('id-ID', { numeric: 'auto' });
+  const t = OS.t;
+  const LOCALE = OS.i18n.locale;
+  const timeFmt = (withSeconds) => new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', minute: '2-digit', second: withSeconds ? '2-digit' : undefined });
+  const shortDateFmt = new Intl.DateTimeFormat(LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const longDateFmt = new Intl.DateTimeFormat(LOCALE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const monthFmt = new Intl.DateTimeFormat(LOCALE, { month: 'long', year: 'numeric' });
+  const relFmt = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
+  // Short weekday names, Sunday first (1 Jan 2023 was a Sunday).
+  const WEEKDAYS = Array.from({ length: 7 }, (_, i) => new Intl.DateTimeFormat(LOCALE, { weekday: 'short' }).format(new Date(2023, 0, 1 + i)));
 
   /* ------------------------------------------------------------------ */
   /* Running / pinned applications                                      */
@@ -89,14 +93,14 @@
     const r = btn.getBoundingClientRect();
     OS.ui.contextMenu(r.left, r.top - 6, [
       { header: app.name },
-      { label: 'Jendela baru', icon: 'plus', disabled: app.singleInstance && wins.length > 0, action: () => OS.wm.open(id) },
+      { label: t('taskbar.newWindow'), icon: 'plus', disabled: app.singleInstance && wins.length > 0, action: () => OS.wm.open(id) },
       {
-        label: isPinned ? 'Lepas sematan dari bilah tugas' : 'Sematkan ke bilah tugas',
+        label: t(isPinned ? 'taskbar.unpin' : 'taskbar.pin'),
         icon: isPinned ? 'close' : 'plus',
         action: () => togglePin(id),
       },
       wins.length ? '-' : null,
-      wins.length ? { label: wins.length > 1 ? 'Tutup semua jendela' : 'Tutup jendela', icon: 'close', danger: true, action: () => wins.forEach((w) => w.close()) } : null,
+      wins.length ? { label: t(wins.length > 1 ? 'taskbar.closeAll' : 'taskbar.closeWindow'), icon: 'close', danger: true, action: () => wins.forEach((w) => w.close()) } : null,
     ], { above: true });
   }
 
@@ -156,8 +160,8 @@
   }
 
   function openStart() {
-    const el = h('div', { class: 'popup start-menu', role: 'dialog', 'aria-label': 'Menu Mulai' });
-    const input = h('input', { class: 'input', type: 'search', placeholder: 'Cari aplikasi, berkas, atau web', 'aria-label': 'Cari', spellcheck: false });
+    const el = h('div', { class: 'popup start-menu', role: 'dialog', 'aria-label': t('start.label') });
+    const input = h('input', { class: 'input', type: 'search', placeholder: t('start.searchPlaceholder'), 'aria-label': t('start.search'), spellcheck: false });
     const body = h('div', { class: 'start-body' });
     const user = OS.settings.get('username');
 
@@ -171,13 +175,14 @@
         e.preventDefault();
         const pinned = (OS.settings.get('pinned') || []).includes(app.id);
         OS.ui.contextMenu(e.clientX, e.clientY, [
-          { label: 'Buka', icon: 'open', action: () => { OS.ui.closePopup(); OS.wm.open(app.id); } },
-          { label: pinned ? 'Lepas sematan dari bilah tugas' : 'Sematkan ke bilah tugas', icon: pinned ? 'close' : 'plus', action: () => togglePin(app.id) },
+          { label: t('common.open'), icon: 'open', action: () => { OS.ui.closePopup(); OS.wm.open(app.id); } },
+          { label: t(pinned ? 'taskbar.unpin' : 'taskbar.pin'), icon: pinned ? 'close' : 'plus', action: () => togglePin(app.id) },
           {
-            label: 'Tambahkan ke desktop', icon: 'monitor',
+            label: t('start.addToDesktop'), icon: 'monitor',
             action: () => {
+              // Named by app id so the label follows the system language (see fileOps.displayName).
               const dir = OS.desktop.DESKTOP;
-              OS.vfs.writeFile(`${dir}/${OS.vfs.uniqueName(dir, `${app.name}.app`)}`, JSON.stringify({ app: app.id }));
+              OS.vfs.writeFile(`${dir}/${OS.vfs.uniqueName(dir, `${app.id}.app`)}`, JSON.stringify({ app: app.id }));
             },
           },
         ]);
@@ -187,11 +192,11 @@
 
     function showHome() {
       body.innerHTML = '';
-      body.appendChild(h('div', { class: 'start-section-title' }, h('span', { text: 'Semua aplikasi' })));
+      body.appendChild(h('div', { class: 'start-section-title' }, h('span', { text: t('start.allApps') })));
       body.appendChild(h('div', { class: 'start-grid' }, OS.apps.list().map(appButton)));
       const recent = recentFiles();
       if (recent.length) {
-        body.appendChild(h('div', { class: 'start-section-title' }, h('span', { text: 'Berkas terbaru' })));
+        body.appendChild(h('div', { class: 'start-section-title' }, h('span', { text: t('start.recent') })));
         body.appendChild(h('div', { class: 'start-results' }, recent.map(fileRow)));
       }
     }
@@ -210,7 +215,7 @@
       }
       results = [];
       if (apps.length) {
-        body.appendChild(h('div', { class: 'start-section-title', text: 'Aplikasi' }));
+        body.appendChild(h('div', { class: 'start-section-title', text: t('start.apps') }));
         const list = h('div', { class: 'start-results' });
         apps.forEach((app) => {
           const row = resultRow({ iconHtml: OS.icons.appIcon(app), name: app.name, sub: app.description, action: () => OS.wm.open(app.id) });
@@ -220,7 +225,7 @@
         body.appendChild(list);
       }
       if (files.length) {
-        body.appendChild(h('div', { class: 'start-section-title', text: 'Berkas & folder' }));
+        body.appendChild(h('div', { class: 'start-section-title', text: t('start.files') }));
         const list = h('div', { class: 'start-results' });
         files.forEach((entry) => {
           const row = entry.type === 'dir'
@@ -231,8 +236,8 @@
         });
         body.appendChild(list);
       }
-      body.appendChild(h('div', { class: 'start-section-title', text: 'Web' }));
-      const web = resultRow({ iconHtml: OS.icons.appIcon(OS.apps.get('browser')), name: `Cari "${q}" di web`, sub: 'Buka di Browser', action: () => OS.wm.open('browser', { url: q }) });
+      body.appendChild(h('div', { class: 'start-section-title', text: t('start.web') }));
+      const web = resultRow({ iconHtml: OS.icons.appIcon(OS.apps.get('browser')), name: t('start.searchWeb', { query: q }), sub: t('start.openIn', { app: OS.apps.get('browser').name }), action: () => OS.wm.open('browser', { url: q }) });
       results.push(web);
       body.appendChild(h('div', { class: 'start-results' }, web));
       highlight = 0;
@@ -261,23 +266,23 @@
 
     const userBtn = h('button', {
       class: 'start-user',
-      title: 'Pengaturan akun',
+      title: t('start.account'),
       html: `<span class="avatar">${escapeHtml((user || '?').trim().charAt(0).toUpperCase())}</span><span>${escapeHtml(user)}</span>`,
       onclick: () => { OS.ui.closePopup(); OS.wm.open('settings', { section: 'system' }); },
     });
     const powerBtn = h('button', {
       class: 'icon-btn',
-      title: 'Daya',
-      'aria-label': 'Daya',
+      title: t('start.power'),
+      'aria-label': t('start.power'),
       html: glyph('power'),
       onclick: (e) => {
         const r = e.currentTarget.getBoundingClientRect();
         OS.ui.contextMenu(r.right, r.top - 6, [
-          { label: 'Kunci', icon: 'lock', action: () => { OS.ui.closePopup(); OS.session.lock(); } },
-          { label: 'Keluar', icon: 'logout', action: () => { OS.ui.closePopup(); OS.session.signOut(); } },
+          { label: t('start.lock'), icon: 'lock', action: () => { OS.ui.closePopup(); OS.session.lock(); } },
+          { label: t('start.signOut'), icon: 'logout', action: () => { OS.ui.closePopup(); OS.session.signOut(); } },
           '-',
-          { label: 'Mulai ulang', icon: 'restart', action: () => { OS.ui.closePopup(); OS.session.restart(); } },
-          { label: 'Matikan', icon: 'power', danger: true, action: () => { OS.ui.closePopup(); OS.session.shutdown(); } },
+          { label: t('start.restart'), icon: 'restart', action: () => { OS.ui.closePopup(); OS.session.restart(); } },
+          { label: t('start.shutdown'), icon: 'power', danger: true, action: () => { OS.ui.closePopup(); OS.session.shutdown(); } },
         ], { above: true, alignRight: true });
       },
     });
@@ -305,34 +310,35 @@
       renderTray();
     }).catch(() => {});
   }
-  const batteryText = () => (battery ? `${Math.round(battery.level * 100)}%${battery.charging ? ' · mengisi daya' : ''}` : '100%');
+  const batteryText = () => (battery ? `${Math.round(battery.level * 100)}%${battery.charging ? ` · ${t('quick.charging')}` : ''}` : '100%');
 
   function renderTray() {
     if (!quickBtn) return;
     const s = OS.settings;
     const net = s.get('airplane') ? 'plane' : 'wifi';
     quickBtn.innerHTML = glyph(net) + glyph('volume') + glyph('battery');
-    quickBtn.title = `${s.get('airplane') ? 'Mode pesawat aktif' : s.get('wifi') ? 'Terhubung ke AwanNet' : 'Wi-Fi mati'} · Volume ${s.get('volume')}% · Baterai ${batteryText()}`;
+    const network = t(s.get('airplane') ? 'quick.airplaneOn' : s.get('wifi') ? 'quick.connected' : 'quick.wifiOff');
+    quickBtn.title = t('quick.status', { network, volume: s.get('volume'), battery: batteryText() });
   }
 
   function openQuickSettings() {
     const s = OS.settings;
-    const el = h('div', { class: 'popup tray-popup', role: 'dialog', 'aria-label': 'Pengaturan cepat' });
+    const el = h('div', { class: 'popup tray-popup', role: 'dialog', 'aria-label': t('quick.label') });
 
     const tiles = [
-      { key: 'wifi', label: 'Wi-Fi', icon: 'wifi' },
-      { key: 'bluetooth', label: 'Bluetooth', icon: 'bluetooth' },
-      { key: 'airplane', label: 'Mode pesawat', icon: 'plane' },
-      { key: 'theme', label: 'Mode gelap', icon: 'moon', get: () => s.get('theme') === 'dark', set: (on) => s.set('theme', on ? 'dark' : 'light') },
-      { key: 'nightLight', label: 'Lampu malam', icon: 'sun' },
-      { key: 'animations', label: 'Animasi', icon: 'sparkles' },
+      { key: 'wifi', label: t('quick.wifi'), icon: 'wifi' },
+      { key: 'bluetooth', label: t('quick.bluetooth'), icon: 'bluetooth' },
+      { key: 'airplane', label: t('quick.airplane'), icon: 'plane' },
+      { key: 'theme', label: t('quick.darkMode'), icon: 'moon', get: () => s.get('theme') === 'dark', set: (on) => s.set('theme', on ? 'dark' : 'light') },
+      { key: 'nightLight', label: t('quick.nightLight'), icon: 'sun' },
+      { key: 'animations', label: t('quick.animations'), icon: 'sparkles' },
     ];
     const grid = h('div', { class: 'qs-grid' });
-    const tileEls = tiles.map((t) => {
-      const get = t.get || (() => !!s.get(t.key));
-      const set = t.set || ((on) => s.set(t.key, on));
-      const btn = h('button', { html: glyph(t.icon), 'aria-label': t.label });
-      const wrap = h('div', { class: 'qs-tile' }, btn, h('span', { text: t.label }));
+    const tileEls = tiles.map((tile) => {
+      const get = tile.get || (() => !!s.get(tile.key));
+      const set = tile.set || ((on) => s.set(tile.key, on));
+      const btn = h('button', { html: glyph(tile.icon), 'aria-label': tile.label });
+      const wrap = h('div', { class: 'qs-tile' }, btn, h('span', { text: tile.label }));
       const sync = () => {
         wrap.classList.toggle('on', get());
         btn.setAttribute('aria-pressed', get() ? 'true' : 'false');
@@ -340,8 +346,8 @@
       btn.addEventListener('click', () => {
         const on = !get();
         set(on);
-        if (t.key === 'airplane' && on) { s.set('wifi', false); s.set('bluetooth', false); }
-        if ((t.key === 'wifi' || t.key === 'bluetooth') && on) s.set('airplane', false);
+        if (tile.key === 'airplane' && on) { s.set('wifi', false); s.set('bluetooth', false); }
+        if ((tile.key === 'wifi' || tile.key === 'bluetooth') && on) s.set('airplane', false);
         tileEls.forEach((fn) => fn());
       });
       grid.appendChild(wrap);
@@ -361,11 +367,11 @@
 
     el.append(
       grid,
-      slider('sun', 'brightness', 30, 'Kecerahan'),
-      slider('volume', 'volume', 0, 'Volume'),
+      slider('sun', 'brightness', 30, t('quick.brightness')),
+      slider('volume', 'volume', 0, t('quick.volume')),
       h('div', { class: 'qs-footer' },
         h('span', { html: `${glyph('battery')} ${escapeHtml(batteryText())}` }),
-        h('button', { class: 'icon-btn', title: 'Semua pengaturan', 'aria-label': 'Semua pengaturan', html: glyph('settings'), onclick: () => { OS.ui.closePopup(); OS.wm.open('settings'); } }))
+        h('button', { class: 'icon-btn', title: t('quick.allSettings'), 'aria-label': t('quick.allSettings'), html: glyph('settings'), onclick: () => { OS.ui.closePopup(); OS.wm.open('settings'); } }))
     );
     OS.ui.openPopup(el, { owner: quickBtn });
   }
@@ -375,23 +381,23 @@
   /* ------------------------------------------------------------------ */
 
   function openCalendar() {
-    const el = h('div', { class: 'popup tray-popup', role: 'dialog', 'aria-label': 'Kalender' });
+    const el = h('div', { class: 'popup tray-popup', role: 'dialog', 'aria-label': t('calendar.label') });
     const today = new Date();
     let view = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    const notifHead = h('h3', {}, h('span', { text: 'Notifikasi' }));
+    const notifHead = h('h3', {}, h('span', { text: t('calendar.notifications') }));
     const notifList = h('div');
     const renderNotifs = () => {
       const items = OS.ui.notifications.history;
       notifHead.querySelector('.link-btn')?.remove();
-      if (items.length) notifHead.appendChild(h('button', { class: 'link-btn', text: 'Hapus semua', onclick: () => { OS.ui.notifications.clear(); renderNotifs(); } }));
+      if (items.length) notifHead.appendChild(h('button', { class: 'link-btn', text: t('calendar.clearAll'), onclick: () => { OS.ui.notifications.clear(); renderNotifs(); } }));
       notifList.className = items.length ? 'notif-list' : 'notif-empty';
       notifList.innerHTML = items.length
         ? items.map((n) => {
           const mins = Math.round((n.time - Date.now()) / 60000);
           return `<div class="notif-item"><time>${escapeHtml(relFmt.format(mins, 'minute'))}</time><strong>${escapeHtml(n.title)}</strong>${n.body ? `<span>${escapeHtml(n.body)}</span>` : ''}</div>`;
         }).join('')
-        : 'Tidak ada notifikasi baru';
+        : escapeHtml(t('calendar.noNotifications'));
     };
     renderNotifs();
 
@@ -407,8 +413,7 @@
     const gridEl = h('div', { class: 'cal-grid' });
     const renderMonth = () => {
       title.textContent = monthFmt.format(view);
-      const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-      let html = days.map((d, i) => `<div class="dow"${i === 0 ? ' style="color:var(--danger)"' : ''}>${d}</div>`).join('');
+      let html = WEEKDAYS.map((d, i) => `<div class="dow"${i === 0 ? ' style="color:var(--danger)"' : ''}>${escapeHtml(d)}</div>`).join('');
       const first = new Date(view.getFullYear(), view.getMonth(), 1);
       const start = new Date(first);
       start.setDate(1 - first.getDay());
@@ -436,9 +441,9 @@
       h('div', { class: 'cal-head' },
         title,
         h('div', {},
-          h('button', { class: 'icon-btn', title: 'Bulan sebelumnya', html: glyph('back'), onclick: () => nav(-1) }),
-          h('button', { class: 'icon-btn', title: 'Hari ini', html: glyph('home'), onclick: () => { view = new Date(today.getFullYear(), today.getMonth(), 1); renderMonth(); } }),
-          h('button', { class: 'icon-btn', title: 'Bulan berikutnya', html: glyph('forward'), onclick: () => nav(1) }))),
+          h('button', { class: 'icon-btn', title: t('calendar.prevMonth'), html: glyph('back'), onclick: () => nav(-1) }),
+          h('button', { class: 'icon-btn', title: t('calendar.today'), html: glyph('home'), onclick: () => { view = new Date(today.getFullYear(), today.getMonth(), 1); renderMonth(); } }),
+          h('button', { class: 'icon-btn', title: t('calendar.nextMonth'), html: glyph('forward'), onclick: () => nav(1) }))),
       gridEl
     );
     OS.ui.openPopup(el, { owner: clockBtn });
@@ -468,10 +473,10 @@
       if (e.target.closest('.tb-app')) return;
       e.preventDefault();
       OS.ui.contextMenu(e.clientX, e.clientY - 6, [
-        { label: 'Pengelola Tugas', iconHtml: OS.icons.appIcon(OS.apps.get('taskmanager'), 'xs'), action: () => OS.wm.open('taskmanager') },
-        { label: 'Tampilkan desktop', icon: 'monitor', action: () => OS.wm.toggleDesktop() },
+        { label: OS.apps.get('taskmanager').name, iconHtml: OS.icons.appIcon(OS.apps.get('taskmanager'), 'xs'), action: () => OS.wm.open('taskmanager') },
+        { label: t('taskbar.showDesktop'), icon: 'monitor', action: () => OS.wm.toggleDesktop() },
         '-',
-        { label: 'Pengaturan bilah tugas', icon: 'settings', action: () => OS.wm.open('settings', { section: 'personalization' }) },
+        { label: t('taskbar.settings'), icon: 'settings', action: () => OS.wm.open('settings', { section: 'personalization' }) },
       ], { above: true });
     });
 

@@ -5,6 +5,7 @@
   const { h, escapeHtml, extname, debounce } = OS.utils;
   const vfs = OS.vfs;
   const ops = OS.fileOps;
+  const t = OS.t;
 
   const DESKTOP = `${vfs.HOME}/Desktop`;
   const CELL_W = 98;
@@ -255,9 +256,9 @@
       Object.assign(selBox.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.right - box.left}px`, height: `${box.bottom - box.top}px` });
       const hit = new Set(base);
       for (const [name, el] of elements) {
-        const l = el.offsetLeft;
-        const t = el.offsetTop;
-        if (l < box.right && l + el.offsetWidth > box.left && t < box.bottom && t + el.offsetHeight > box.top) hit.add(name);
+        const left = el.offsetLeft;
+        const top = el.offsetTop;
+        if (left < box.right && left + el.offsetWidth > box.left && top < box.bottom && top + el.offsetHeight > box.top) hit.add(name);
       }
       setSelection([...hit]);
     };
@@ -276,18 +277,18 @@
 
   function desktopMenu(x, y) {
     OS.ui.contextMenu(x, y, [
-      { label: 'Folder baru', icon: 'folderPlus', action: () => createAndRename(ops.newFolder) },
-      { label: 'Dokumen teks baru', icon: 'filePlus', action: () => createAndRename(ops.newTextFile) },
-      { label: 'Tempel', icon: 'paste', shortcut: 'Ctrl+V', disabled: !ops.clipboard.paths.length, action: () => ops.paste(DESKTOP) },
-      { label: 'Impor dari komputer…', icon: 'upload', action: () => ops.pickAndImport(DESKTOP) },
+      { label: t('desktop.newFolder'), icon: 'folderPlus', action: () => createAndRename(ops.newFolder) },
+      { label: t('desktop.newTextFile'), icon: 'filePlus', action: () => createAndRename(ops.newTextFile) },
+      { label: t('desktop.paste'), icon: 'paste', shortcut: 'Ctrl+V', disabled: !ops.clipboard.paths.length, action: () => ops.paste(DESKTOP) },
+      { label: t('desktop.import'), icon: 'upload', action: () => ops.pickAndImport(DESKTOP) },
       '-',
-      { label: 'Segarkan', icon: 'refresh', action: refresh },
-      { label: 'Urutkan ikon menurut nama', icon: 'grid', action: () => { OS.settings.set('desktopPositions', {}); render(); } },
+      { label: t('desktop.refresh'), icon: 'refresh', action: refresh },
+      { label: t('desktop.sortByName'), icon: 'grid', action: () => { OS.settings.set('desktopPositions', {}); render(); } },
       '-',
-      { label: 'Buka di Penjelajah Berkas', icon: 'folder', action: () => OS.wm.open('explorer', { path: DESKTOP }) },
-      { label: 'Buka Terminal di sini', icon: 'terminal', action: () => OS.wm.open('terminal', { cwd: DESKTOP }) },
+      { label: t('desktop.openInApp', { app: OS.apps.get('explorer').name }), icon: 'folder', action: () => OS.wm.open('explorer', { path: DESKTOP }) },
+      { label: t('desktop.openAppHere', { app: OS.apps.get('terminal').name }), icon: 'terminal', action: () => OS.wm.open('terminal', { cwd: DESKTOP }) },
       '-',
-      { label: 'Personalisasi', icon: 'palette', action: () => OS.wm.open('settings', { section: 'personalization' }) },
+      { label: t('desktop.personalize'), icon: 'palette', action: () => OS.wm.open('settings', { section: 'personalization' }) },
     ]);
   }
 

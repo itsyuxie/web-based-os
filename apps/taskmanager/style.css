@@ -1,4 +1,4 @@
-/* AwanOS — Pengelola Tugas */
+/* AwanOS — Task Manager */
 
 .tm-perf { padding: 14px 16px 12px; flex: none; border-bottom: 1px solid var(--border); }
 .tm-perf-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }

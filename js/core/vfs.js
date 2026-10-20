@@ -12,28 +12,11 @@
   const file = (content = '') => ({ type: 'file', mtime: now(), content });
   const shortcut = (app) => file(JSON.stringify({ app }));
 
-  const WELCOME = `Selamat datang di AwanOS!
-=========================
-
-AwanOS adalah sistem operasi desktop yang berjalan sepenuhnya di browser.
-Semua berkas yang kamu buat disimpan di penyimpanan lokal browser ini.
-
-Beberapa hal yang bisa dicoba:
-  • Klik dua kali ikon di desktop untuk membuka aplikasi.
-  • Seret jendela ke tepi kiri/kanan layar untuk membaginya, atau ke atas untuk memaksimalkan.
-  • Klik kanan desktop untuk membuat folder atau dokumen baru.
-  • Seret berkas dari komputermu ke Penjelajah Berkas untuk mengimpornya.
-  • Buka Terminal dan ketik "help" untuk melihat daftar perintah.
-  • Ganti wallpaper, tema, dan warna aksen di Pengaturan.
-
-Selamat bersenang-senang!
-`;
-
   const SAMPLE_HTML = `<!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Halo dari AwanOS</title>
+  <title>Hello from AwanOS</title>
   <style>
     body { font-family: system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0;
            background: linear-gradient(135deg, #38bdf8, #6366f1); color: white; }
@@ -43,64 +26,65 @@ Selamat bersenang-senang!
 </head>
 <body>
   <div class="card">
-    <h1>Halo, dunia!</h1>
-    <p>Halaman ini disimpan di sistem berkas AwanOS.</p>
-    <p>Klik kanan berkasnya lalu pilih "Buka dengan Notepad" untuk mengeditnya.</p>
-    <button onclick="this.textContent = 'Diklik ' + (++window.n || (window.n = 1)) + ' kali'">Klik aku</button>
+    <h1>Hello, world!</h1>
+    <p>This page is stored in the AwanOS file system.</p>
+    <p>Right-click the file and choose "Open with Notepad" to edit it.</p>
+    <button onclick="this.textContent = 'Clicked ' + (++window.n || (window.n = 1)) + ' times'">Click me</button>
   </div>
 </body>
 </html>
 `;
 
+  /** The tree created on first boot. The read-me file uses the system language. */
   function defaultTree() {
     return dir({
       home: dir({
         user: dir({
           Desktop: dir({
-            'Penjelajah Berkas.app': shortcut('explorer'),
-            'Browser.app': shortcut('browser'),
-            'Terminal.app': shortcut('terminal'),
-            'Notepad.app': shortcut('notepad'),
-            'Paint.app': shortcut('paint'),
-            'Kalkulator.app': shortcut('calculator'),
-            'Minesweeper.app': shortcut('minesweeper'),
-            'Pengaturan.app': shortcut('settings'),
-            'Baca saya.txt': file(WELCOME),
+            'explorer.app': shortcut('explorer'),
+            'browser.app': shortcut('browser'),
+            'terminal.app': shortcut('terminal'),
+            'notepad.app': shortcut('notepad'),
+            'paint.app': shortcut('paint'),
+            'calculator.app': shortcut('calculator'),
+            'minesweeper.app': shortcut('minesweeper'),
+            'settings.app': shortcut('settings'),
+            [OS.t('fs.readmeName')]: file(OS.t('fs.welcome')),
           }),
-          Dokumen: dir({
-            'catatan.txt': file('Daftar belanja:\n- Kopi\n- Roti\n- Telur\n'),
-            'halo.html': file(SAMPLE_HTML),
-            'ide.md': file('# Ide proyek\n\n1. Belajar JavaScript\n2. Membuat OS di browser ✔\n3. ...\n'),
+          Documents: dir({
+            'notes.txt': file('Shopping list:\n- Coffee\n- Bread\n- Eggs\n'),
+            'hello.html': file(SAMPLE_HTML),
+            'ideas.md': file('# Project ideas\n\n1. Learn JavaScript\n2. Build an OS in the browser ✔\n3. ...\n'),
           }),
-          Gambar: dir({}),
-          Musik: dir({}),
-          Unduhan: dir({}),
+          Pictures: dir({}),
+          Music: dir({}),
+          Downloads: dir({}),
         }),
       }),
       etc: dir({
         hostname: file('awanos\n'),
-        motd: file('Selamat datang di AwanOS. Ketik "help" untuk bantuan.\n'),
+        motd: file('Welcome to AwanOS. Type "help" to see the available commands.\n'),
       }),
       tmp: dir({}),
     });
   }
 
-  let root = OS.storage.read('fs', null);
-  const firstBoot = !root || root.type !== 'dir';
-  if (firstBoot) root = defaultTree();
+  let root = null; // set by vfs.init() once the language files are loaded
 
   let saveFailed = false;
   const persist = debounce(() => {
+    if (!root) return;
     const ok = OS.storage.write('fs', root);
     if (!ok && !saveFailed && OS.notify) {
-      OS.notify({ title: 'Penyimpanan penuh', body: 'Perubahan berkas tidak dapat disimpan. Hapus beberapa berkas besar.', icon: 'hardDrive' });
+      OS.notify({ title: OS.t('fs.storageFull'), body: OS.t('fs.storageFullBody'), icon: 'hardDrive' });
     }
     saveFailed = !ok;
   }, 150);
 
+  /** Filesystem error with a POSIX-like code and a translated message (fs.errors.<key>). */
   class FsError extends Error {
-    constructor(code, message) {
-      super(message);
+    constructor(code, key, params) {
+      super(OS.t(`fs.errors.${key}`, params));
       this.code = code;
     }
   }
@@ -137,16 +121,16 @@ Selamat bersenang-senang!
   }
 
   function parentOf(path) {
-    if (path === '/') throw new FsError('EPERM', 'Tidak dapat mengubah direktori root');
+    if (path === '/') throw new FsError('EPERM', 'rootReadOnly');
     const parent = nodeAt(dirname(path));
-    if (!parent) throw new FsError('ENOENT', `Direktori tidak ditemukan: ${dirname(path)}`);
-    if (parent.type !== 'dir') throw new FsError('ENOTDIR', `Bukan direktori: ${dirname(path)}`);
+    if (!parent) throw new FsError('ENOENT', 'dirNotFound', { path: dirname(path) });
+    if (parent.type !== 'dir') throw new FsError('ENOTDIR', 'notDir', { path: dirname(path) });
     return parent;
   }
 
   function validName(name) {
     if (!name || name === '.' || name === '..' || name.includes('/')) {
-      throw new FsError('EINVAL', `Nama tidak valid: "${name}"`);
+      throw new FsError('EINVAL', 'invalidName', { name });
     }
   }
 
@@ -193,8 +177,8 @@ Selamat bersenang-senang!
     readdir(path) {
       path = resolve(path);
       const node = nodeAt(path);
-      if (!node) throw new FsError('ENOENT', `Tidak ditemukan: ${path}`);
-      if (node.type !== 'dir') throw new FsError('ENOTDIR', `Bukan direktori: ${path}`);
+      if (!node) throw new FsError('ENOENT', 'notFound', { path });
+      if (node.type !== 'dir') throw new FsError('ENOTDIR', 'notDir', { path });
       return Object.entries(node.children)
         .map(([name, child]) => ({
           name,
@@ -209,8 +193,8 @@ Selamat bersenang-senang!
     readFile(path) {
       path = resolve(path);
       const node = nodeAt(path);
-      if (!node) throw new FsError('ENOENT', `Berkas tidak ditemukan: ${path}`);
-      if (node.type !== 'file') throw new FsError('EISDIR', `Ini adalah direktori: ${path}`);
+      if (!node) throw new FsError('ENOENT', 'fileNotFound', { path });
+      if (node.type !== 'file') throw new FsError('EISDIR', 'isDir', { path });
       return node.content;
     },
 
@@ -220,7 +204,7 @@ Selamat bersenang-senang!
       const name = basename(path);
       validName(name);
       const existing = parent.children[name];
-      if (existing && existing.type === 'dir') throw new FsError('EISDIR', `Ini adalah direktori: ${path}`);
+      if (existing && existing.type === 'dir') throw new FsError('EISDIR', 'isDir', { path });
       parent.children[name] = { type: 'file', mtime: now(), content: String(content) };
       parent.mtime = now();
       changed(path);
@@ -241,14 +225,14 @@ Selamat bersenang-senang!
           cur = join(cur, part);
           const node = nodeAt(cur);
           if (!node) vfs.mkdir(cur);
-          else if (node.type !== 'dir') throw new FsError('ENOTDIR', `Bukan direktori: ${cur}`);
+          else if (node.type !== 'dir') throw new FsError('ENOTDIR', 'notDir', { path: cur });
         }
         return path;
       }
       const parent = parentOf(path);
       const name = basename(path);
       validName(name);
-      if (parent.children[name]) throw new FsError('EEXIST', `Sudah ada: ${path}`);
+      if (parent.children[name]) throw new FsError('EEXIST', 'exists', { path });
       parent.children[name] = dir({});
       parent.mtime = now();
       changed(path);
@@ -260,9 +244,9 @@ Selamat bersenang-senang!
       const parent = parentOf(path);
       const name = basename(path);
       const node = parent.children[name];
-      if (!node) throw new FsError('ENOENT', `Tidak ditemukan: ${path}`);
+      if (!node) throw new FsError('ENOENT', 'notFound', { path });
       if (node.type === 'dir' && !recursive && Object.keys(node.children).length) {
-        throw new FsError('ENOTEMPTY', `Direktori tidak kosong: ${path}`);
+        throw new FsError('ENOTEMPTY', 'notEmpty', { path });
       }
       delete parent.children[name];
       parent.mtime = now();
@@ -273,15 +257,15 @@ Selamat bersenang-senang!
       from = resolve(from);
       to = resolve(to);
       if (from === to) return to;
-      if (to === from || to.startsWith(from + '/')) throw new FsError('EINVAL', 'Tidak dapat memindahkan folder ke dalam dirinya sendiri');
+      if (to === from || to.startsWith(from + '/')) throw new FsError('EINVAL', 'moveIntoSelf');
       const srcParent = parentOf(from);
       const srcName = basename(from);
       const node = srcParent.children[srcName];
-      if (!node) throw new FsError('ENOENT', `Tidak ditemukan: ${from}`);
+      if (!node) throw new FsError('ENOENT', 'notFound', { path: from });
       const dstParent = parentOf(to);
       const dstName = basename(to);
       validName(dstName);
-      if (dstParent.children[dstName]) throw new FsError('EEXIST', `Sudah ada: ${to}`);
+      if (dstParent.children[dstName]) throw new FsError('EEXIST', 'exists', { path: to });
       delete srcParent.children[srcName];
       dstParent.children[dstName] = node;
       node.mtime = now();
@@ -293,13 +277,13 @@ Selamat bersenang-senang!
     copy(from, to) {
       from = resolve(from);
       to = resolve(to);
-      if (to.startsWith(from + '/')) throw new FsError('EINVAL', 'Tidak dapat menyalin folder ke dalam dirinya sendiri');
+      if (to.startsWith(from + '/')) throw new FsError('EINVAL', 'copyIntoSelf');
       const node = nodeAt(from);
-      if (!node) throw new FsError('ENOENT', `Tidak ditemukan: ${from}`);
+      if (!node) throw new FsError('ENOENT', 'notFound', { path: from });
       const dstParent = parentOf(to);
       const dstName = basename(to);
       validName(dstName);
-      if (dstParent.children[dstName]) throw new FsError('EEXIST', `Sudah ada: ${to}`);
+      if (dstParent.children[dstName]) throw new FsError('EEXIST', 'exists', { path: to });
       const clone = JSON.parse(JSON.stringify(node));
       clone.mtime = now();
       dstParent.children[dstName] = clone;
@@ -338,7 +322,7 @@ Selamat bersenang-senang!
     exportData: () => JSON.parse(JSON.stringify(root)),
 
     importData(tree) {
-      if (!tree || tree.type !== 'dir' || typeof tree.children !== 'object') throw new FsError('EINVAL', 'Data sistem berkas tidak valid');
+      if (!tree || tree.type !== 'dir' || typeof tree.children !== 'object') throw new FsError('EINVAL', 'invalidData');
       root = tree;
       changed('/');
     },
@@ -348,12 +332,23 @@ Selamat bersenang-senang!
       changed('/');
     },
 
-    /** Flush pending writes immediately (used before reload). */
+    /**
+     * Load the stored tree, or create the default one on first boot.
+     * Returns true when a fresh tree was created.
+     */
+    init() {
+      root = OS.storage.read('fs', null);
+      if (root && root.type === 'dir') return false;
+      root = defaultTree();
+      vfs.flush();
+      return true;
+    },
+
+    /** Flush pending writes immediately (used before reload). Does nothing before init(). */
     flush() {
-      OS.storage.write('fs', root);
+      if (root) OS.storage.write('fs', root);
     },
   };
 
   OS.vfs = vfs;
-  if (firstBoot) vfs.flush();
 })();

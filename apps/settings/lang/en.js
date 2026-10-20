@@ -1,0 +1,106 @@
+/* AwanOS — Settings: English */
+OS.i18n.register('en', {
+  name: 'Settings',
+  description: 'Theme, wallpaper, language, account and storage',
+  keywords: ['settings', 'theme', 'wallpaper', 'personalize', 'language', 'control panel'],
+
+  windowTitle: 'Settings — {section}',
+  localAccount: 'Local account',
+
+  sections: {
+    personalization: 'Personalization',
+    language: 'Language',
+    system: 'System',
+    shortcuts: 'Keyboard shortcuts',
+    about: 'About',
+  },
+
+  personalization: {
+    background: 'Background',
+    choosePicture: 'Choose a picture…',
+    pictureUnreadable: "The picture couldn't be read",
+    storageFull: 'Browser storage is full.',
+    wallpaperFailed: "Couldn't set the wallpaper",
+    colors: 'Colors',
+    mode: 'Mode',
+    modeDesc: 'Choose a light or dark appearance',
+    light: 'Light',
+    dark: 'Dark',
+    accent: 'Accent color',
+    accentDesc: 'Used for buttons, highlights and the taskbar',
+    accentSwatch: 'Accent color {color}',
+    customColor: 'Custom color',
+    transparency: 'Transparency effects',
+    transparencyDesc: 'Windows and the taskbar look like frosted glass',
+    animations: 'Animation effects',
+    animationsDesc: 'Animate windows, menus and transitions',
+    clockSeconds: 'Show seconds in the taskbar clock',
+  },
+
+  language: {
+    pending: '{language} will be used after you restart AwanOS.',
+    restartNow: 'Restart now',
+    displayLanguage: 'Display language',
+    current: 'In use',
+    afterRestart: 'After restart',
+    appsNote: "Apps that don't have a translation for the selected language yet are shown in English.",
+    restartTitle: 'Restart required',
+    restartMessage: '{language} will be applied after AwanOS restarts. Do you want to restart now?',
+    later: 'Later',
+  },
+
+  system: {
+    account: 'Account',
+    userName: 'User name',
+    userNameDesc: 'Shown on the lock screen and in the Start menu',
+    storage: 'Storage',
+    browserStorage: 'Browser storage',
+    browserStorageDesc: 'Files are stored in localStorage, in this browser only',
+    usage: '{used} of about {total} used · Files: {files}',
+  },
+
+  backup: {
+    title: 'Back up your data',
+    desc: 'Download all files and settings as a single JSON file',
+    export: 'Export',
+    import: 'Import',
+    fileName: 'awanos-backup-{date}.json',
+    invalid: 'This file is not an AwanOS backup.',
+    confirmTitle: 'Import backup',
+    confirm: 'All current files and settings will be replaced with the contents of the backup. Do you want to continue?',
+    confirmOk: 'Import',
+    failed: 'Import failed',
+  },
+
+  reset: {
+    title: 'Reset AwanOS',
+    desc: 'Delete all data and return to the original state',
+    button: 'Reset',
+    confirm: "All files, settings and history will be deleted and AwanOS will be restored to its original state. This can't be undone.",
+  },
+
+  shortcuts: {
+    dragTitleBar: "Drag a window's title bar to a screen edge",
+    dragTitleBarDesc: 'Snap left or right, or maximize',
+    doubleClickTitleBar: "Double-click a window's title bar",
+    doubleClickTitleBarDesc: 'Maximize / restore',
+    rename: 'Rename the selected file',
+    delete: 'Delete the selected file',
+    clipboard: 'Copy / cut / paste files',
+    save: 'Save ({apps})',
+  },
+
+  about: {
+    tagline: 'A desktop operating system that runs entirely in your browser as a static website — no server, no build step.',
+    version: 'Version',
+    browser: 'Browser',
+    platform: 'Platform',
+    language: 'Language',
+    browserLanguage: 'Browser language',
+    screen: 'Screen resolution',
+    window: 'Browser window',
+    cpuCores: 'CPU cores',
+    installedApps: 'Installed apps',
+    unknown: 'Unknown',
+  },
+}, 'settings');

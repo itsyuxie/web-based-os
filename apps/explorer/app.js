@@ -2,26 +2,28 @@
 (function () {
   'use strict';
   const OS = window.OS;
+  const t = OS.i18n.forApp('explorer');
   const { h, escapeHtml, formatBytes, formatDate, extname } = OS.utils;
   const { glyph } = OS.icons;
   const vfs = OS.vfs;
   const ops = OS.fileOps;
   const DRAG_TYPE = ops.DRAG_TYPE;
 
+  // Labels come from the dictionary (places.<key>).
   const PLACES = [
-    { name: 'Beranda', path: vfs.HOME, icon: 'home' },
-    { name: 'Desktop', path: `${vfs.HOME}/Desktop`, icon: 'monitor' },
-    { name: 'Dokumen', path: `${vfs.HOME}/Dokumen`, icon: 'fileText' },
-    { name: 'Gambar', path: `${vfs.HOME}/Gambar`, icon: 'image' },
-    { name: 'Musik', path: `${vfs.HOME}/Musik`, icon: 'music' },
-    { name: 'Unduhan', path: `${vfs.HOME}/Unduhan`, icon: 'downloadFolder' },
+    { key: 'home', path: vfs.HOME, icon: 'home' },
+    { key: 'desktop', path: `${vfs.HOME}/Desktop`, icon: 'monitor' },
+    { key: 'documents', path: `${vfs.HOME}/Documents`, icon: 'fileText' },
+    { key: 'pictures', path: `${vfs.HOME}/Pictures`, icon: 'image' },
+    { key: 'music', path: `${vfs.HOME}/Music`, icon: 'music' },
+    { key: 'downloads', path: `${vfs.HOME}/Downloads`, icon: 'downloadFolder' },
     null,
-    { name: 'Sistem berkas', path: '/', icon: 'hardDrive' },
+    { key: 'root', path: '/', icon: 'hardDrive' },
   ];
 
   const placeName = (path) => {
     const p = PLACES.find((pl) => pl && pl.path === path);
-    return p ? p.name : path === '/' ? 'Sistem berkas' : vfs.basename(path);
+    return p ? t(`places.${p.key}`) : vfs.basename(path);
   };
 
   function launch(win, args) {
@@ -35,12 +37,12 @@
     let items = []; // [{ entry, el }]
 
     const btn = (icon, title, onclick) => h('button', { class: 'icon-btn', title, 'aria-label': title, html: glyph(icon), onclick });
-    const backBtn = btn('back', 'Kembali (Alt+←)', () => goHistory(-1));
-    const fwdBtn = btn('forward', 'Maju (Alt+→)', () => goHistory(1));
-    const upBtn = btn('up', 'Naik satu tingkat (Backspace)', () => navigate(vfs.dirname(cwd)));
-    const address = h('input', { class: 'input fx-address', spellcheck: false, 'aria-label': 'Lokasi' });
-    const search = h('input', { class: 'input fx-search', type: 'search', placeholder: 'Cari di folder ini', spellcheck: false });
-    const viewBtn = btn('list', 'Ganti tampilan', () => { view = view === 'grid' ? 'list' : 'grid'; render(); });
+    const backBtn = btn('back', t('toolbar.back'), () => goHistory(-1));
+    const fwdBtn = btn('forward', t('toolbar.forward'), () => goHistory(1));
+    const upBtn = btn('up', t('toolbar.up'), () => navigate(vfs.dirname(cwd)));
+    const address = h('input', { class: 'input fx-address', spellcheck: false, 'aria-label': t('toolbar.address') });
+    const search = h('input', { class: 'input fx-search', type: 'search', placeholder: t('toolbar.search'), spellcheck: false });
+    const viewBtn = btn('list', t('toolbar.changeView'), () => { view = view === 'grid' ? 'list' : 'grid'; render(); });
     const content = h('div', { class: 'fx-content drop-zone', tabindex: '0' });
     const status = h('div', { class: 'statusbar' });
     const sidebar = h('nav', { class: 'fx-sidebar' });
@@ -50,7 +52,7 @@
         sidebar.appendChild(h('div', { class: 'fx-sep' }));
         return;
       }
-      const el = h('button', { class: 'fx-place', html: `${glyph(place.icon)}<span>${escapeHtml(place.name)}</span>`, onclick: () => navigate(place.path) });
+      const el = h('button', { class: 'fx-place', html: `${glyph(place.icon)}<span>${escapeHtml(t(`places.${place.key}`))}</span>`, onclick: () => navigate(place.path) });
       el.dataset.path = place.path;
       acceptInternalDrop(el, () => place.path);
       sidebar.appendChild(el);
@@ -59,13 +61,13 @@
     win.body.classList.add('explorer');
     win.body.append(
       h('div', { class: 'toolbar' },
-        backBtn, fwdBtn, upBtn, btn('refresh', 'Segarkan', () => render()),
+        backBtn, fwdBtn, upBtn, btn('refresh', t('toolbar.refresh'), () => render()),
         address,
         search,
         h('div', { class: 'toolbar-sep' }),
-        btn('folderPlus', 'Folder baru', () => createAndRename(ops.newFolder)),
-        btn('filePlus', 'Dokumen teks baru', () => createAndRename(ops.newTextFile)),
-        btn('upload', 'Impor dari komputer', () => ops.pickAndImport(cwd)),
+        btn('folderPlus', t('toolbar.newFolder'), () => createAndRename(ops.newFolder)),
+        btn('filePlus', t('toolbar.newTextFile'), () => createAndRename(ops.newTextFile)),
+        btn('upload', t('toolbar.import'), () => ops.pickAndImport(cwd)),
         viewBtn),
       h('div', { class: 'fx-main' }, sidebar, content),
       status
@@ -75,7 +77,7 @@
       path = vfs.resolve(path);
       if (!vfs.isDir(path)) {
         if (vfs.isFile(path)) OS.apps.openPath(path);
-        else OS.ui.alert(`Folder "${path}" tidak ditemukan.`, { title: 'Penjelajah Berkas', icon: 'warning' });
+        else OS.ui.alert(t('dialogs.folderNotFound', { path }), { title: t('name'), icon: 'warning' });
         address.value = cwd;
         return;
       }
@@ -129,7 +131,7 @@
       content.innerHTML = '';
       if (view === 'list') {
         content.appendChild(h('div', { class: 'fx-row fx-head' },
-          h('span', { text: 'Nama' }), h('span', { text: 'Diubah' }), h('span', { text: 'Jenis' }), h('span', { text: 'Ukuran' })));
+          h('span', { text: t('columns.name') }), h('span', { text: t('columns.modified') }), h('span', { text: t('columns.type') }), h('span', { text: t('columns.size') })));
       }
       items = entries.map((entry) => {
         const cut = ops.clipboard.mode === 'cut' && ops.clipboard.paths.includes(entry.path);
@@ -141,8 +143,8 @@
           html: view === 'grid'
             ? `<div class="fx-icon">${entryIcon(entry)}</div><div class="fx-name">${name}</div>`
             : `<span class="fx-cell-name"><span class="fx-icon">${entryIcon(entry)}</span><span class="fx-name">${name}</span></span>` +
-              `<span>${escapeHtml(formatDate(entry.mtime))}</span><span>${escapeHtml(ops.typeLabel(entry.name, entry.type))}</span>` +
-              `<span>${entry.type === 'file' ? escapeHtml(formatBytes(entry.size)) : ''}</span>`,
+              `<span>${escapeHtml(formatDate(entry.mtime, t.locale))}</span><span>${escapeHtml(ops.typeLabel(entry.name, entry.type))}</span>` +
+              `<span>${entry.type === 'file' ? escapeHtml(formatBytes(entry.size, t.locale)) : ''}</span>`,
         });
         el.dataset.path = entry.path;
         if (entry.type === 'dir') acceptInternalDrop(el, () => entry.path);
@@ -150,17 +152,17 @@
       });
       items.forEach(({ el }) => content.appendChild(el));
       if (!items.length) {
-        content.appendChild(h('div', { class: 'fx-empty', html: `${glyph(filter ? 'search' : 'folder')}<span>${filter ? 'Tidak ada yang cocok' : 'Folder ini kosong'}</span>` }));
+        content.appendChild(h('div', { class: 'fx-empty', html: `${glyph(filter ? 'search' : 'folder')}<span>${escapeHtml(t(filter ? 'empty.search' : 'empty.folder'))}</span>` }));
       }
       updateStatus();
     }
 
     function updateStatus() {
       const sel = [...selection];
-      let text = `${items.length} item`;
+      let text = t('status.items', { count: items.length });
       if (sel.length) {
         const size = sel.reduce((sum, p) => sum + ((vfs.stat(p) || {}).size || 0), 0);
-        text += `  •  ${sel.length} dipilih (${formatBytes(size)})`;
+        text += `  •  ${t('status.selected', { count: sel.length, size: formatBytes(size, t.locale) })}`;
       }
       status.textContent = text;
     }
@@ -263,16 +265,16 @@
       }
       setSelection([]);
       OS.ui.contextMenu(e.clientX, e.clientY, [
-        { label: 'Folder baru', icon: 'folderPlus', action: () => createAndRename(ops.newFolder) },
-        { label: 'Dokumen teks baru', icon: 'filePlus', action: () => createAndRename(ops.newTextFile) },
-        { label: 'Tempel', icon: 'paste', shortcut: 'Ctrl+V', disabled: !ops.clipboard.paths.length, action: () => ops.paste(cwd) },
-        { label: 'Impor dari komputer…', icon: 'upload', action: () => ops.pickAndImport(cwd) },
+        { label: t('menu.newFolder'), icon: 'folderPlus', action: () => createAndRename(ops.newFolder) },
+        { label: t('menu.newTextFile'), icon: 'filePlus', action: () => createAndRename(ops.newTextFile) },
+        { label: t('menu.paste'), icon: 'paste', shortcut: 'Ctrl+V', disabled: !ops.clipboard.paths.length, action: () => ops.paste(cwd) },
+        { label: t('menu.import'), icon: 'upload', action: () => ops.pickAndImport(cwd) },
         '-',
-        { label: view === 'grid' ? 'Tampilan daftar' : 'Tampilan ikon', icon: view === 'grid' ? 'list' : 'grid', action: () => { view = view === 'grid' ? 'list' : 'grid'; render(); } },
-        { label: 'Segarkan', icon: 'refresh', action: render },
-        { label: 'Buka Terminal di sini', icon: 'terminal', action: () => OS.wm.open('terminal', { cwd }) },
+        { label: t(view === 'grid' ? 'menu.listView' : 'menu.iconView'), icon: view === 'grid' ? 'list' : 'grid', action: () => { view = view === 'grid' ? 'list' : 'grid'; render(); } },
+        { label: t('menu.refresh'), icon: 'refresh', action: render },
+        { label: t('menu.openTerminal', { app: OS.apps.get('terminal').name }), icon: 'terminal', action: () => OS.wm.open('terminal', { cwd }) },
         '-',
-        { label: 'Properti', icon: 'info', action: () => ops.properties(cwd) },
+        { label: t('menu.properties'), icon: 'info', action: () => ops.properties(cwd) },
       ]);
     });
     content.addEventListener('dragstart', (e) => {
@@ -338,9 +340,7 @@
 
   OS.apps.register({
     id: 'explorer',
-    name: 'Penjelajah Berkas',
-    description: 'Kelola berkas dan folder',
-    keywords: ['file', 'folder', 'explorer', 'berkas'],
+    languages: ['en'],
     icon: 'folder',
     colors: ['#fbbf24', '#f59e0b'],
     width: 860,

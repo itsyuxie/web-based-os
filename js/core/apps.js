@@ -15,14 +15,30 @@
   const apps = {
     /**
      * Register an application.
-     * { id, name, icon, colors, launch(win, args), width, height, minWidth, minHeight,
-     *   singleInstance, resizable, hidden, fileTypes: ['txt', '*'], description }
+     * { id, icon, colors, launch(win, args), languages: ['en'], width, height, minWidth, minHeight,
+     *   singleInstance, resizable, hidden, fileTypes: ['txt', '*'] }
+     * The display name, description and search keywords come from the app's language
+     * files (apps/<id>/lang/<code>.js: keys `name`, `description`, `keywords`).
      */
     register(def) {
+      if (!def.languages) def.languages = [OS.i18n.FALLBACK];
+      const t = () => OS.i18n.forApp(def.id);
+      ['name', 'description'].forEach((key) => {
+        if (!(key in def)) Object.defineProperty(def, key, { get: () => t()(key), enumerable: true });
+      });
+      if (!('keywords' in def)) {
+        Object.defineProperty(def, 'keywords', {
+          get: () => {
+            const k = t().has('keywords') ? t()('keywords') : [];
+            return Array.isArray(k) ? k : String(k).split(/\s*,\s*/);
+          },
+          enumerable: true,
+        });
+      }
       registry.set(def.id, def);
     },
     get: (id) => registry.get(id),
-    list: () => [...registry.values()].filter((a) => !a.hidden).sort((a, b) => a.name.localeCompare(b.name, 'id')),
+    list: () => [...registry.values()].filter((a) => !a.hidden).sort((a, b) => a.name.localeCompare(b.name, OS.i18n.locale)),
     all: () => [...registry.values()],
 
     launch(id, args) {
@@ -59,7 +75,7 @@
       path = vfs.resolve(path);
       const stat = vfs.stat(path);
       if (!stat) {
-        OS.ui.alert(`Lokasi "${path}" tidak ditemukan.`, { title: 'Tidak dapat membuka', icon: 'warning' });
+        OS.ui.alert(OS.t('apps.notFound', { path }), { title: OS.t('apps.cannotOpen'), icon: 'warning' });
         return null;
       }
       if (stat.type === 'dir' && !appId) return OS.wm.open('explorer', { path });
