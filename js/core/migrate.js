@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const OS = window.OS;
-  const VERSION = 2;
+  const VERSION = 3;
 
   // Version 1 (Indonesian-only) stored localised folder and shortcut names.
   const V1_FOLDERS = { Dokumen: 'Documents', Gambar: 'Pictures', Musik: 'Music', Unduhan: 'Downloads' };
@@ -40,9 +40,19 @@
       }
     }
     OS.settings.set('desktopPositions', positions);
-    if (OS.settings.get('username') === 'Pengguna') OS.settings.set('username', OS.settings.DEFAULTS.username);
     // Replace the old default message of the day, but only if it was never edited.
     if (vfs.isFile('/etc/motd') && vfs.readFile('/etc/motd') === V1_MOTD) vfs.writeFile('/etc/motd', V2_MOTD);
+  }
+
+  /**
+   * Version 2 saved every setting, defaults included. Values that were the old defaults
+   * follow the new Windows 11–style defaults; the default user name becomes localised.
+   */
+  function toV3() {
+    const s = OS.settings;
+    if (['User', 'Pengguna'].includes(s.get('username'))) s.set('username', null);
+    if (s.get('accent') === '#3b82f6') s.set('accent', s.DEFAULTS.accent);
+    if (s.get('wallpaper') === 'awan') s.set('wallpaper', s.DEFAULTS.wallpaper);
   }
 
   /** Bring stored data up to date. Fresh installs are already current. */
@@ -53,6 +63,13 @@
         toV2();
       } catch (err) {
         console.warn('AwanOS: could not upgrade saved data', err);
+      }
+    }
+    if (from < 3) {
+      try {
+        toV3();
+      } catch (err) {
+        console.warn('AwanOS: could not upgrade saved settings', err);
       }
     }
     OS.storage.write('dataVersion', VERSION);

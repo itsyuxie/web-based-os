@@ -3,7 +3,7 @@
   'use strict';
   const OS = window.OS;
   const { h, emitter, clamp, isMobile, escapeHtml } = OS.utils;
-  const { glyph } = OS.icons;
+  const { caption } = OS.icons;
 
   const events = emitter();
   const windows = []; // stacking order: last element is top-most
@@ -15,17 +15,85 @@
   const area = () => ({ w: layer().clientWidth, h: layer().clientHeight });
   const RESIZE_DIRS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
-  /* Snap preview ------------------------------------------------------- */
+  /* Snapping ----------------------------------------------------------- */
 
-  function showSnapPreview(kind) {
+  // Zones are fractions of the desktop area (above the taskbar).
+  const Z = (x, y, w, h) => ({ x, y, w, h });
+  const ZONES = {
+    left: Z(0, 0, 0.5, 1), right: Z(0.5, 0, 0.5, 1),
+    tl: Z(0, 0, 0.5, 0.5), tr: Z(0.5, 0, 0.5, 0.5), bl: Z(0, 0.5, 0.5, 0.5), br: Z(0.5, 0.5, 0.5, 0.5),
+  };
+  // The layouts offered when hovering the maximize button.
+  const SNAP_LAYOUTS = [
+    [ZONES.left, ZONES.right],
+    [Z(0, 0, 2 / 3, 1), Z(2 / 3, 0, 1 / 3, 1)],
+    [ZONES.left, ZONES.tr, ZONES.br],
+    [ZONES.tl, ZONES.tr, ZONES.bl, ZONES.br],
+  ];
+  const sameZone = (a, b) => !!a && !!b && ['x', 'y', 'w', 'h'].every((k) => Math.abs(a[k] - b[k]) < 0.001);
+
+  function showSnapPreview(target) {
     const el = document.getElementById('snap-preview');
-    if (!kind) {
+    if (!target) {
       el.hidden = true;
-      el.className = '';
       return;
     }
+    const a = area();
+    const zone = target === 'maximized' ? Z(0, 0, 1, 1) : target;
+    const m = 8;
+    Object.assign(el.style, {
+      left: `${zone.x * a.w + m}px`,
+      top: `${zone.y * a.h + m}px`,
+      width: `${zone.w * a.w - m * 2}px`,
+      height: `${zone.h * a.h - m * 2}px`,
+    });
     el.hidden = false;
-    el.className = `snap-${kind}`;
+  }
+
+  /* Snap layouts flyout ----------------------------------------------- */
+
+  let flyout = null;
+  let flyoutTimer = null;
+
+  function hideSnapFlyout() {
+    clearTimeout(flyoutTimer);
+    if (flyout) {
+      flyout.el.remove();
+      flyout = null;
+    }
+  }
+
+  function showSnapFlyout(win) {
+    hideSnapFlyout();
+    const el = h('div', { class: 'snap-flyout', role: 'menu', 'aria-label': OS.t('wm.snapLayouts') });
+    SNAP_LAYOUTS.forEach((zones) => {
+      const box = h('div', { class: 'snap-layout' });
+      zones.forEach((z) => {
+        const zoneBtn = h('button', { class: 'snap-zone', role: 'menuitem', 'aria-label': OS.t('wm.snapLayouts') });
+        Object.assign(zoneBtn.style, {
+          left: `calc(${z.x * 100}% + 2px)`,
+          top: `calc(${z.y * 100}% + 2px)`,
+          width: `calc(${z.w * 100}% - 4px)`,
+          height: `calc(${z.h * 100}% - 4px)`,
+        });
+        zoneBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          hideSnapFlyout();
+          win.focus();
+          win.snapTo(z);
+        });
+        box.appendChild(zoneBtn);
+      });
+      el.appendChild(box);
+    });
+    document.getElementById('popups').appendChild(el);
+    const r = win.maxBtn.getBoundingClientRect();
+    const f = el.getBoundingClientRect();
+    el.style.left = `${clamp(r.left + r.width / 2 - f.width / 2, 4, window.innerWidth - f.width - 4)}px`;
+    el.style.top = `${r.bottom + 4}px`;
+    el.addEventListener('pointerenter', () => clearTimeout(flyoutTimer));
+    el.addEventListener('pointerleave', () => { flyoutTimer = setTimeout(hideSnapFlyout, 300); });
+    flyout = { el, win };
   }
 
   /* Window ------------------------------------------------------------- */
@@ -37,7 +105,8 @@
       this.appId = app.id;
       this.args = args;
       this.title = app.name;
-      this.state = 'normal'; // normal | maximized | left | right
+      this.state = 'normal'; // normal | maximized | snapped (see this.zone)
+      this.zone = null;
       this.minimized = false;
       this.closed = false;
       this.filePath = null;
@@ -62,9 +131,9 @@
         `<span class="win-icon">${OS.icons.appIcon(app, 'xs')}</span>` +
         '<span class="win-title"></span>' +
         '<div class="win-controls">' +
-        `<button class="win-btn win-min" title="${label('minimize')}" aria-label="${label('minimize')}">${glyph('minimize')}</button>` +
-        (this.resizable ? `<button class="win-btn win-max" title="${label('maximize')}" aria-label="${label('maximize')}">${glyph('maximize')}</button>` : '') +
-        `<button class="win-btn win-close" title="${label('close')}" aria-label="${label('close')}">${glyph('close')}</button>` +
+        `<button class="win-btn win-min" title="${label('minimize')}" aria-label="${label('minimize')}">${caption('minimize')}</button>` +
+        (this.resizable ? `<button class="win-btn win-max" title="${label('maximize')}" aria-label="${label('maximize')}">${caption('maximize')}</button>` : '') +
+        `<button class="win-btn win-close" title="${label('close')}" aria-label="${label('close')}">${caption('close')}</button>` +
         '</div></div>' +
         '<div class="win-body"></div>' +
         (this.resizable ? RESIZE_DIRS.map((d) => `<div class="rz rz-${d}" data-dir="${d}"></div>`).join('') : '');
@@ -75,12 +144,27 @@
       this.body = el.querySelector('.win-body');
       this.maxBtn = el.querySelector('.win-max');
       this.titleEl.textContent = this.title;
+      // The window content is in the app's own language, which can differ from the system's.
+      this.body.lang = OS.i18n.forApp(app.id).locale;
       if (app.bodyClass) this.body.classList.add(app.bodyClass);
 
       el.addEventListener('pointerdown', () => this.focus(), true);
       el.querySelector('.win-min').addEventListener('click', (e) => { e.stopPropagation(); this.minimize(); });
       el.querySelector('.win-close').addEventListener('click', (e) => { e.stopPropagation(); this.close(); });
-      if (this.maxBtn) this.maxBtn.addEventListener('click', (e) => { e.stopPropagation(); this.toggleMaximize(); });
+      if (this.maxBtn) {
+        this.maxBtn.addEventListener('click', (e) => { e.stopPropagation(); hideSnapFlyout(); this.toggleMaximize(); });
+        // Hovering the maximize button offers snap layouts, as in Windows 11.
+        this.maxBtn.addEventListener('pointerenter', (e) => {
+          if (e.pointerType !== 'mouse' || isMobile()) return;
+          clearTimeout(flyoutTimer);
+          if (flyout && flyout.win === this) return;
+          flyoutTimer = setTimeout(() => showSnapFlyout(this), 450);
+        });
+        this.maxBtn.addEventListener('pointerleave', () => {
+          clearTimeout(flyoutTimer);
+          if (flyout) flyoutTimer = setTimeout(hideSnapFlyout, 300);
+        });
+      }
 
       this.titlebar.addEventListener('pointerdown', (e) => {
         if (e.button !== 0 || e.target.closest('.win-btn')) return;
@@ -194,23 +278,31 @@
       events.emit('change');
     }
 
-    setState(state, animate = true) {
+    /** state: 'normal' | 'maximized' | 'snapped' (with a zone) — 'left' / 'right' are shorthands. */
+    setState(state, animate = true, zone = null) {
+      if (state === 'left' || state === 'right') {
+        zone = ZONES[state];
+        state = 'snapped';
+      }
       if (!this.resizable && state !== 'normal') return;
       if (isMobile() && state !== 'maximized') state = 'maximized';
-      if (state === this.state) return;
+      if (state === this.state && (state !== 'snapped' || sameZone(zone, this.zone))) return;
       if (animate) {
         this.el.classList.add('animating');
         clearTimeout(this._animTimer);
         this._animTimer = setTimeout(() => this.el.classList.remove('animating'), 240);
       }
-      this.el.classList.remove('maximized', 'snap-left', 'snap-right');
+      this.el.classList.remove('maximized', 'snapped');
       if (state === 'maximized') this.el.classList.add('maximized');
-      else if (state === 'left') this.el.classList.add('snap-left');
-      else if (state === 'right') this.el.classList.add('snap-right');
+      else if (state === 'snapped') {
+        this.el.classList.add('snapped');
+        ['x', 'y', 'w', 'h'].forEach((k) => this.el.style.setProperty(`--s${k}`, String(zone[k])));
+      }
       this.state = state;
+      this.zone = state === 'snapped' ? zone : null;
       if (this.maxBtn) {
         const max = state === 'maximized';
-        this.maxBtn.innerHTML = glyph(max ? 'restore' : 'maximize');
+        this.maxBtn.innerHTML = caption(max ? 'restore' : 'maximize');
         this.maxBtn.title = OS.t(max ? 'wm.restore' : 'wm.maximize');
         this.maxBtn.setAttribute('aria-label', this.maxBtn.title);
       }
@@ -219,6 +311,10 @@
 
     toggleMaximize() {
       this.setState(this.state === 'maximized' ? 'normal' : 'maximized');
+    }
+
+    snapTo(zone) {
+      this.setState('snapped', true, zone);
     }
 
     async close(force = false) {
@@ -230,6 +326,7 @@
       }
       if (this.closed) return true;
       this.closed = true;
+      if (flyout && flyout.win === this) hideSnapFlyout();
       this.events.emit('close');
       const idx = windows.indexOf(this);
       if (idx >= 0) windows.splice(idx, 1);
@@ -291,12 +388,7 @@
         this.rect.x = clamp(r0.x + dx, 80 - this.rect.w, a.w - 80);
         this.rect.y = clamp(r0.y + dy, 0, a.h - 36);
         this.applyRect();
-        snap = null;
-        if (this.resizable) {
-          if (ev.clientY <= 2) snap = 'maximized';
-          else if (ev.clientX <= 2) snap = 'left';
-          else if (ev.clientX >= window.innerWidth - 3) snap = 'right';
-        }
+        snap = this.resizable ? snapTarget(ev.clientX, ev.clientY) : null;
         showSnapPreview(snap);
       };
       const onUp = (ev) => {
@@ -306,7 +398,8 @@
         if (bar.hasPointerCapture(ev.pointerId)) bar.releasePointerCapture(ev.pointerId);
         document.body.classList.remove('wm-busy');
         showSnapPreview(null);
-        if (snap) this.setState(snap);
+        if (snap === 'maximized') this.setState('maximized');
+        else if (snap) this.snapTo(snap);
       };
       bar.addEventListener('pointermove', onMove);
       bar.addEventListener('pointerup', onUp);
@@ -360,6 +453,17 @@
       handle.addEventListener('pointerup', onUp);
       handle.addEventListener('pointercancel', onUp);
     }
+  }
+
+  /** Where a window dragged to (x, y) would snap: screen edges, corners (quarters) or the top (maximize). */
+  function snapTarget(x, y) {
+    const corner = 48;
+    const w = window.innerWidth;
+    const hgt = area().h;
+    if (y <= 2) return x <= corner ? ZONES.tl : x >= w - corner ? ZONES.tr : 'maximized';
+    if (x <= 2) return y <= corner ? ZONES.tl : y >= hgt - corner ? ZONES.bl : ZONES.left;
+    if (x >= w - 3) return y <= corner ? ZONES.tr : y >= hgt - corner ? ZONES.br : ZONES.right;
+    return null;
   }
 
   /* Manager ------------------------------------------------------------ */

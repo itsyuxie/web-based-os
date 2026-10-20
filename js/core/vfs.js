@@ -9,6 +9,13 @@
 
   const now = () => Date.now();
   const dir = (children = {}) => ({ type: 'dir', mtime: now(), children });
+  // Names sort in the order of the UI language (numeric: "file 2" before "file 10").
+  let sorter = null;
+  const collator = () => {
+    const locale = OS.i18n ? OS.i18n.locale : undefined;
+    if (!sorter || sorter.locale !== locale) sorter = { locale, cmp: new Intl.Collator(locale, { numeric: true, sensitivity: 'base' }) };
+    return sorter.cmp;
+  };
   const file = (content = '') => ({ type: 'file', mtime: now(), content });
   const shortcut = (app) => file(JSON.stringify({ app }));
 
@@ -29,7 +36,7 @@
     <h1>Hello, world!</h1>
     <p>This page is stored in the AwanOS file system.</p>
     <p>Right-click the file and choose "Open with Notepad" to edit it.</p>
-    <button onclick="this.textContent = 'Clicked ' + (++window.n || (window.n = 1)) + ' times'">Click me</button>
+    <button onclick="window.n = (window.n || 0) + 1; this.textContent = 'Clicked ' + window.n + (window.n === 1 ? ' time' : ' times')">Click me</button>
   </div>
 </body>
 </html>
@@ -187,7 +194,7 @@
           mtime: child.mtime,
           size: child.type === 'file' ? contentSize(child.content) : undefined,
         }))
-        .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name, 'id', { numeric: true, sensitivity: 'base' }) : a.type === 'dir' ? -1 : 1));
+        .sort((a, b) => (a.type === b.type ? collator().compare(a.name, b.name) : a.type === 'dir' ? -1 : 1));
     },
 
     readFile(path) {

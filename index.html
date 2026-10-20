@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="AwanOS — a desktop operating system that runs entirely in the browser as a static website.">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#202020">
   <title>AwanOS</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/system.css">
@@ -41,13 +41,16 @@
 
     <!-- Taskbar -->
     <footer id="taskbar" data-i18n-aria-label="taskbar.label">
-      <button id="start-button" class="tb-btn" data-i18n-title="taskbar.start" data-i18n-aria-label="taskbar.start" aria-haspopup="true" aria-expanded="false"></button>
-      <div id="taskbar-apps" role="toolbar" data-i18n-aria-label="taskbar.apps"></div>
+      <div id="taskbar-main">
+        <button id="start-button" class="tb-btn" data-i18n-title="taskbar.start" data-i18n-aria-label="taskbar.start" aria-haspopup="true" aria-expanded="false"></button>
+        <button id="search-button" class="tb-btn tb-search" data-i18n-title="taskbar.search" aria-haspopup="true" aria-expanded="false"><span data-i18n="taskbar.search"></span></button>
+        <div id="taskbar-apps" role="toolbar" data-i18n-aria-label="taskbar.apps"></div>
+      </div>
       <div id="tray">
-        <button id="tray-quick" class="tb-btn tray-btn" data-i18n-aria-label="quick.label"></button>
-        <button id="tray-clock" class="tb-btn tray-btn" data-i18n-aria-label="taskbar.clock">
+        <button id="tray-quick" class="tb-btn tray-btn" data-i18n-aria-label="quick.label" aria-haspopup="true" aria-expanded="false"></button>
+        <button id="tray-clock" class="tb-btn tray-btn" data-i18n-aria-label="taskbar.clock" aria-haspopup="true" aria-expanded="false">
           <span class="clock-time"></span>
-          <span class="clock-date"></span>
+          <span class="clock-row"><span class="clock-date"></span></span>
         </button>
         <button id="show-desktop" data-i18n-title="taskbar.showDesktop" data-i18n-aria-label="taskbar.showDesktop"></button>
       </div>
@@ -62,9 +65,8 @@
   <!-- Session screens -->
   <!-- Visible from the first paint; hidden by the session once the desktop is ready. -->
   <section id="boot-screen" class="screen">
-    <div class="boot-logo"></div>
-    <div class="boot-name">AwanOS</div>
-    <div class="spinner"></div>
+    <div class="boot-logo"><img class="app-icon" src="assets/icons/logo.svg" alt="AwanOS"></div>
+    <div class="dots-spinner" role="progressbar" aria-label="AwanOS"><i></i><i></i><i></i><i></i><i></i></div>
   </section>
 
   <section id="lock-screen" class="screen" hidden>
@@ -77,8 +79,9 @@
     <form class="lock-login" autocomplete="off">
       <div class="avatar avatar-lg"></div>
       <div class="lock-user"></div>
-      <button type="submit" class="btn btn-primary lock-submit" data-i18n="session.signIn"></button>
+      <button type="submit" class="btn lock-submit" data-i18n="session.signIn"></button>
     </form>
+    <div class="lock-status" aria-hidden="true"></div>
   </section>
 
   <section id="off-screen" class="screen" hidden>

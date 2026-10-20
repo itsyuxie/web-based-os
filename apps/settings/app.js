@@ -56,8 +56,8 @@
     });
 
     function renderUser() {
-      const name = s.get('username');
-      user.innerHTML = `<span class="avatar">${escapeHtml(name.trim().charAt(0).toUpperCase() || '?')}</span><div><strong>${escapeHtml(name)}</strong><span>${escapeHtml(t('localAccount'))}</span></div>`;
+      const name = s.userName();
+      user.innerHTML = `<span class="avatar">${escapeHtml(name.charAt(0).toUpperCase() || '?')}</span><div><strong>${escapeHtml(name)}</strong><span>${escapeHtml(t('localAccount'))}</span></div>`;
     }
 
     const card = (title, desc, control) =>
@@ -205,10 +205,10 @@
     }
 
     function system() {
-      const nameInput = h('input', { class: 'input', value: s.get('username'), maxlength: 32, 'aria-label': t('system.userName'), style: { width: '220px' } });
+      const nameInput = h('input', { class: 'input', value: s.userName(), maxlength: 32, 'aria-label': t('system.userName'), style: { width: '220px' } });
       nameInput.addEventListener('change', () => {
         const v = nameInput.value.trim();
-        if (v) { s.set('username', v); renderUser(); } else nameInput.value = s.get('username');
+        if (v) { s.set('username', v); renderUser(); } else nameInput.value = s.userName();
       });
 
       const used = OS.storage.usage();

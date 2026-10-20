@@ -15,13 +15,15 @@
   const apps = {
     /**
      * Register an application.
-     * { id, icon, colors, launch(win, args), languages: ['en'], width, height, minWidth, minHeight,
+     * { id, launch(win, args), languages: ['en'], iconUrl, width, height, minWidth, minHeight,
      *   singleInstance, resizable, hidden, fileTypes: ['txt', '*'] }
      * The display name, description and search keywords come from the app's language
      * files (apps/<id>/lang/<code>.js: keys `name`, `description`, `keywords`).
      */
     register(def) {
       if (!def.languages) def.languages = [OS.i18n.FALLBACK];
+      // Every app folder ships its own icon (apps/<id>/icon.svg) unless it says otherwise.
+      if (def.iconUrl === undefined) def.iconUrl = `apps/${def.id}/icon.svg`;
       const t = () => OS.i18n.forApp(def.id);
       ['name', 'description'].forEach((key) => {
         if (!(key in def)) Object.defineProperty(def, key, { get: () => t()(key), enumerable: true });

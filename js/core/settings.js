@@ -43,7 +43,9 @@
     },
   };
 
+  // `css` may be a function of the theme for wallpapers with a light and a dark variant.
   const WALLPAPERS = [
+    { id: 'ribbons', css: (theme) => `url("assets/wallpapers/ribbons-${theme}.svg") center / cover no-repeat, ${theme === 'light' ? '#bcd5f2' : '#0b1a3a'}` },
     { id: 'awan', css: 'url("assets/wallpapers/awan.svg") center / cover no-repeat, #6d8cff' },
     { id: 'senja', css: 'url("assets/wallpapers/senja.svg") center / cover no-repeat, #3b1d60' },
     {
@@ -63,17 +65,24 @@
     { id: 'grafit', css: 'radial-gradient(circle at 30% 20%, #3a4256, transparent 60%), linear-gradient(180deg, #1c2130, #0e1118)' },
   ];
 
-  // Display names live in the language files (wallpapers.<id>).
-  WALLPAPERS.forEach((wp) => Object.defineProperty(wp, 'name', { get: () => OS.t(`wallpapers.${wp.id}`), enumerable: true }));
+  // Display names live in the language files (wallpapers.<id>); `css` always reads for the current theme.
+  WALLPAPERS.forEach((wp) => {
+    const css = wp.css;
+    Object.defineProperty(wp, 'name', { get: () => OS.t(`wallpapers.${wp.id}`), enumerable: true });
+    Object.defineProperty(wp, 'css', { get: () => (typeof css === 'function' ? css(currentTheme()) : css), enumerable: true });
+  });
 
-  const ACCENTS = ['#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4'];
+  const ACCENTS = ['#0078d4', '#0063b1', '#6b69d6', '#8764b8', '#b146c2', '#e3008c', '#e81123', '#ca5010', '#c19c00', '#10893e', '#038387', '#00b7c3'];
 
   const DEFAULTS = {
-    theme: 'dark',
-    accent: '#3b82f6',
-    wallpaper: 'awan',
-    username: 'User',
+    theme: 'light',
+    accent: '#0078d4',
+    wallpaper: 'ribbons',
+    username: null, // null = the localised default name (session.defaultUser)
     language: null, // null = follow the browser language
+    taskbarAlign: 'center',
+    desktopIconSize: 'medium',
+    showDesktopIcons: true,
     animations: true,
     transparency: true,
     brightness: 100,
@@ -84,6 +93,7 @@
     airplane: false,
     clockSeconds: false,
     pinned: ['explorer', 'browser', 'terminal', 'notepad', 'settings'],
+    startPinned: ['explorer', 'browser', 'notepad', 'terminal', 'calculator', 'paint', 'imageviewer', 'minesweeper', 'taskmanager', 'settings', 'about'],
     desktopPositions: {
       'explorer.app': [0, 0],
       'browser.app': [0, 1],
@@ -98,6 +108,16 @@
 
   const events = OS.utils.emitter();
   let values = Object.assign({}, DEFAULTS, storage.read('settings', {}));
+  const currentTheme = () => (values.theme === 'dark' ? 'dark' : 'light');
+
+  /** Only values that differ from the defaults are stored, so changed defaults reach existing users. */
+  function save() {
+    const changed = {};
+    for (const [key, value] of Object.entries(values)) {
+      if (JSON.stringify(value) !== JSON.stringify(DEFAULTS[key])) changed[key] = value;
+    }
+    storage.write('settings', changed);
+  }
 
   const settings = {
     DEFAULTS,
@@ -109,12 +129,16 @@
     },
     set(key, value) {
       values[key] = value;
-      storage.write('settings', values);
+      save();
       events.emit('change', key, value);
       apply(key);
     },
     on: events.on,
     off: events.off,
+    /** The user's display name, or the localised default. */
+    userName() {
+      return (values.username || '').trim() || OS.t('session.defaultUser');
+    },
     customWallpaper() {
       return storage.read('wallpaper', null);
     },
@@ -141,9 +165,9 @@
   function apply(key) {
     const root = document.documentElement;
     if (!key || key === 'theme') {
-      root.dataset.theme = values.theme === 'light' ? 'light' : 'dark';
+      root.dataset.theme = currentTheme();
       const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.content = values.theme === 'light' ? '#e8ecf4' : '#0f172a';
+      if (meta) meta.content = currentTheme() === 'light' ? '#f3f3f3' : '#202020';
     }
     if (!key || key === 'accent') root.style.setProperty('--accent', values.accent);
     if (!key || key === 'animations') root.classList.toggle('no-anim', !values.animations);
@@ -152,7 +176,7 @@
       root.style.setProperty('--dim', String((100 - values.brightness) / 100 * 0.75));
       root.classList.toggle('night-light', !!values.nightLight);
     }
-    if (!key || key === 'wallpaper') {
+    if (!key || key === 'wallpaper' || key === 'theme') {
       // Set inline so relative url() values resolve against the document, not a stylesheet.
       const css = settings.wallpaperCss();
       document.querySelectorAll('#wallpaper, .lock-bg').forEach((el) => { el.style.background = css; });

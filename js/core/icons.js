@@ -1,4 +1,4 @@
-/* AwanOS — icon set (inline SVG, no external assets) */
+/* AwanOS — icons: monochrome UI glyphs (inline SVG) and colourful app/file icons (SVG images) */
 (function () {
   'use strict';
   const OS = window.OS;
@@ -6,6 +6,19 @@
 
   // Stroke glyphs on a 24×24 grid, drawn with currentColor.
   const GLYPHS = {
+    chevronUp: '<path d="m18 15-6-6-6 6"/>',
+    chevronRight: '<path d="m9 18 6-6-6-6"/>',
+    more: '<circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/>',
+    share: '<path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/>',
+    sort: '<path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/>',
+    view: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    pin: '<path d="M12 17v5"/><path d="M9 3h6l-1 6 4 4v2H6v-2l4-4z"/>',
+    unpin: '<path d="M12 17v5"/><path d="M9 3h6l-1 6 4 4v2H6v-2l4-4z"/><path d="M3 3l18 18"/>',
+    keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+    accessibility: '<circle cx="12" cy="4.5" r="1.8"/><path d="M5 8.5 12 10l7-1.5M12 10v4l-3 7M12 14l3 7"/>',
+    display: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/>',
+    apps: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 3"/>',
     close: '<path d="M18 6 6 18M6 6l12 12"/>',
     minimize: '<path d="M5 12h14"/>',
     maximize: '<rect x="5" y="5" width="14" height="14" rx="1.5"/>',
@@ -89,31 +102,38 @@
     return `<svg class="glyph ${extraClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
   }
 
-  /** Colourful rounded tile used for application icons. */
+  // Thin 10×10 caption glyphs for the window title bar buttons.
+  const CAPTIONS = {
+    minimize: '<path d="M0 5.5h10"/>',
+    maximize: '<rect x=".5" y=".5" width="9" height="9" rx="1.5"/>',
+    restore: '<rect x=".5" y="2.5" width="7" height="7" rx="1.2"/><path d="M2.5 2.5V2a1.5 1.5 0 0 1 1.5-1.5h4.5A1.5 1.5 0 0 1 10 2v4.5A1.5 1.5 0 0 1 8.5 8H7.5"/>',
+    close: '<path d="m.5.5 9 9M9.5.5l-9 9"/>',
+  };
+  const caption = (name) =>
+    `<svg class="caption" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">${CAPTIONS[name]}</svg>`;
+
+  /** Colourful rounded tile with a glyph — fallback for apps without an icon image. */
   function tile(name, colors = ['#64748b', '#334155'], extraClass = '') {
     return `<span class="app-tile ${extraClass}" style="--c1:${colors[0]};--c2:${colors[1]}">${glyph(name)}</span>`;
   }
 
+  const ICON_DIR = 'assets/icons';
+  const img = (src, cls) => `<img class="${cls}" src="${escapeHtml(src)}" alt="" draggable="false" onerror="OS.icons.onError(this)">`;
+
+  /** App icon image (apps/<id>/icon.svg by default). */
   function appIcon(app, extraClass = '') {
-    if (!app) return tile('file');
-    return tile(app.icon, app.colors, extraClass);
+    if (!app) return tile('apps', undefined, extraClass);
+    if (app.iconUrl) return img(app.iconUrl, `app-icon ${extraClass}`);
+    return tile(app.icon || 'apps', app.colors, extraClass);
   }
 
-  const FOLDER_SVG =
-    '<svg class="file-svg" viewBox="0 0 48 48" aria-hidden="true">' +
-    '<path d="M4 11a4 4 0 0 1 4-4h10.3a4 4 0 0 1 2.8 1.2L24 11h16a4 4 0 0 1 4 4v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="#d9952f"/>' +
-    '<path d="M4 18a4 4 0 0 1 4-4h32a4 4 0 0 1 4 4v19a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="#fbc35a"/>' +
-    '<path d="M4 20a4 4 0 0 1 4-4h32a4 4 0 0 1 4 4v1H4z" fill="#fdd788"/></svg>';
-
-  const FILE_BADGES = {
-    text: '<path d="M17 24h14M17 29h14M17 34h9" stroke="#8c96aa" stroke-width="2.4" stroke-linecap="round"/>',
-    code: '<path d="m20 25-4.5 4.5L20 34M28 25l4.5 4.5L28 34" fill="none" stroke="#7c5cff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
-    html: '<path d="m20 25-4.5 4.5L20 34M28 25l4.5 4.5L28 34" fill="none" stroke="#f0652f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
-    image: '<circle cx="20" cy="24" r="3" fill="#f6b73c"/><path d="m14 37 8-8 4 4 4-5 6 9z" fill="#3fb37f"/>',
-    audio: '<path d="M22 35V24l10-2v11" fill="none" stroke="#e0457b" stroke-width="2.4"/><circle cx="19.5" cy="35" r="2.8" fill="#e0457b"/><circle cx="29.5" cy="33" r="2.8" fill="#e0457b"/>',
-    data: '<rect x="15" y="22" width="18" height="14" rx="1.5" fill="none" stroke="#2f9e8f" stroke-width="2.2"/><path d="M15 27h18M21 22v14" stroke="#2f9e8f" stroke-width="2.2"/>',
-    blank: '',
-  };
+  /** Replace an icon image that failed to load with a neutral tile. */
+  function onError(el) {
+    el.onerror = null;
+    const wrap = document.createElement('span');
+    wrap.innerHTML = tile('apps', ['#8a94a6', '#5b6577'], el.className.replace(/\b(app|file)-icon\b/g, '').trim());
+    el.replaceWith(wrap.firstChild);
+  }
 
   const TYPE_BY_EXT = {
     txt: 'text', md: 'text', log: 'text', rtf: 'text',
@@ -128,39 +148,49 @@
     return TYPE_BY_EXT[extname(name)] || 'blank';
   }
 
-  function fileSvg(name) {
-    const badge = FILE_BADGES[fileKind(name)];
-    return (
-      '<svg class="file-svg" viewBox="0 0 48 48" aria-hidden="true">' +
-      '<path d="M11 4h18l10 10v28a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="#f7f8fb" stroke="#c4cad8" stroke-width="1.2"/>' +
-      '<path d="M29 4v8a2 2 0 0 0 2 2h8" fill="#e3e7ef" stroke="#c4cad8" stroke-width="1.2" stroke-linejoin="round"/>' +
-      badge +
-      '</svg>'
-    );
+  /** Icon image for a file name (by type) — `cls` sets the size. */
+  function fileIcon(name, cls = 'fill') {
+    const kind = fileKind(name);
+    return img(`${ICON_DIR}/${kind === 'blank' ? 'file' : `file-${kind}`}.svg`, `file-icon ${cls}`);
+  }
+
+  // Standard folders get their own overlay icons, as in Windows.
+  const SPECIAL_FOLDERS = { '': 'home', Desktop: 'desktop', Documents: 'documents', Pictures: 'pictures', Music: 'music', Downloads: 'downloads' };
+  function folderIcon(path, cls = 'fill') {
+    const home = OS.vfs ? OS.vfs.HOME : '/home/user';
+    let name = 'folder';
+    if (path === home || (path && path.startsWith(home + '/') && !path.slice(home.length + 1).includes('/'))) {
+      const special = SPECIAL_FOLDERS[path === home ? '' : path.slice(home.length + 1)];
+      if (special) name = `folder-${special}`;
+    }
+    return img(`${ICON_DIR}/${name}.svg`, `file-icon ${cls}`);
   }
 
   /**
-   * Icon for a filesystem entry. Application shortcuts (*.app) use the app tile;
-   * image files show a live thumbnail when their content is available.
+   * Icon for a filesystem entry, sized to fill its container. Application shortcuts (*.app)
+   * show the app icon with a shortcut arrow; image files show a live thumbnail when possible.
    */
   function forEntry(entry, content) {
-    if (entry.type === 'dir') return FOLDER_SVG;
-    const ext = extname(entry.name);
-    if (ext === 'app') {
+    if (entry.type === 'dir') return folderIcon(entry.path);
+    if (extname(entry.name) === 'app') {
       try {
         const target = JSON.parse(content || '{}');
         const app = OS.apps && OS.apps.get(target.app);
-        if (app) return appIcon(app);
+        if (app) {
+          return `<span class="icon-stack">${appIcon(app, 'fill')}<img class="shortcut-badge" src="${ICON_DIR}/shortcut-overlay.svg" alt="" draggable="false"></span>`;
+        }
       } catch (_) { /* fall through */ }
     }
     if (fileKind(entry.name) === 'image' && content && /^data:image\//.test(content)) {
       return `<span class="thumb"><img src="${escapeHtml(content)}" alt="" draggable="false"></span>`;
     }
-    return fileSvg(entry.name);
+    return fileIcon(entry.name);
   }
 
-  const LOGO_COLORS = ['#38bdf8', '#6366f1'];
-  const logo = (extraClass = '') => tile('cloud', LOGO_COLORS, `logo ${extraClass}`);
+  const logo = (extraClass = '') => img(`${ICON_DIR}/logo.svg`, `app-icon ${extraClass}`);
 
-  OS.icons = { glyph, tile, appIcon, forEntry, fileKind, folder: FOLDER_SVG, logo, GLYPHS };
+  OS.icons = {
+    glyph, caption, tile, appIcon, fileIcon, folderIcon, forEntry, fileKind, logo, onError, GLYPHS,
+    get folder() { return folderIcon(null); },
+  };
 })();

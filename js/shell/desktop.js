@@ -8,9 +8,15 @@
   const t = OS.t;
 
   const DESKTOP = `${vfs.HOME}/Desktop`;
-  const CELL_W = 98;
-  const CELL_H = 106;
   const PAD = 8;
+  // View ▸ Large / Medium / Small icons: icon size and grid cell size in pixels.
+  const SIZES = {
+    small: { icon: 32, cellW: 78, cellH: 74 },
+    medium: { icon: 48, cellW: 92, cellH: 98 },
+    large: { icon: 72, cellW: 116, cellH: 128 },
+  };
+  let CELL_W = SIZES.medium.cellW;
+  let CELL_H = SIZES.medium.cellH;
 
   let root; // #desktop
   let container; // #desktop-icons
@@ -25,6 +31,17 @@
 
   function ensureDesktop() {
     if (!vfs.isDir(DESKTOP)) vfs.mkdir(DESKTOP, { recursive: true });
+  }
+
+  function applyView() {
+    const size = SIZES[OS.settings.get('desktopIconSize')] ? OS.settings.get('desktopIconSize') : 'medium';
+    CELL_W = SIZES[size].cellW;
+    CELL_H = SIZES[size].cellH;
+    container.classList.toggle('icons-small', size === 'small');
+    container.classList.toggle('icons-large', size === 'large');
+    container.style.setProperty('--cell-w', `${CELL_W}px`);
+    container.style.setProperty('--icon', `${SIZES[size].icon}px`);
+    container.classList.toggle('hidden-icons', OS.settings.get('showDesktopIcons') === false);
   }
 
   function computeLayout() {
@@ -113,6 +130,29 @@
     OS.settings.set('desktopPositions', positions);
   }
 
+  /** Sort by ▸ — lay the icons out column by column in the chosen order. */
+  function sortBy(key) {
+    const collator = new Intl.Collator(OS.i18n.locale, { numeric: true, sensitivity: 'base' });
+    const info = (e) => {
+      const st = vfs.stat(e.path) || {};
+      return { e, label: ops.displayName(e.name), size: st.size || 0, mtime: st.mtime || 0, type: e.type === 'dir' ? '' : ops.typeLabel(e.name) };
+    };
+    const items = vfs.readdir(DESKTOP).map(info);
+    const byName = (a, b) => collator.compare(a.label, b.label);
+    const compare = {
+      name: byName,
+      size: (a, b) => b.size - a.size || byName(a, b),
+      type: (a, b) => collator.compare(a.type, b.type) || byName(a, b),
+      date: (a, b) => b.mtime - a.mtime || byName(a, b),
+    }[key];
+    // Folders first, as in File Explorer.
+    items.sort((a, b) => (a.e.type === 'dir' ? 0 : 1) - (b.e.type === 'dir' ? 0 : 1) || compare(a, b));
+    const positions = {};
+    items.forEach((item, i) => { positions[item.e.name] = [Math.floor(i / grid.rows), i % grid.rows]; });
+    OS.settings.set('desktopPositions', positions);
+    render();
+  }
+
   async function renameItem(name) {
     const el = elements.get(name);
     if (!el) return;
@@ -121,10 +161,11 @@
     const current = ops.displayName(name);
     const next = await OS.ui.inlineEdit(label, current, { selectStem: !isApp });
     if (!next) return;
+    // Read the cell first: renaming re-renders the desktop, which drops the old name from the layout.
+    const pos = layout.get(name);
     const newPath = ops.rename(pathOf(name), next);
     if (newPath) {
       // Keep the icon in the same grid cell under its new name.
-      const pos = layout.get(name);
       const newName = vfs.basename(newPath);
       const positions = Object.assign({}, OS.settings.get('desktopPositions'));
       delete positions[name];
@@ -276,19 +317,41 @@
   /* Menus ------------------------------------------------------------ */
 
   function desktopMenu(x, y) {
+    const size = OS.settings.get('desktopIconSize');
+    const setSize = (v) => OS.settings.set('desktopIconSize', v);
     OS.ui.contextMenu(x, y, [
-      { label: t('desktop.newFolder'), icon: 'folderPlus', action: () => createAndRename(ops.newFolder) },
-      { label: t('desktop.newTextFile'), icon: 'filePlus', action: () => createAndRename(ops.newTextFile) },
+      {
+        label: t('desktop.view'), icon: 'grid',
+        submenu: [
+          { label: t('desktop.largeIcons'), checked: size === 'large', action: () => setSize('large') },
+          { label: t('desktop.mediumIcons'), checked: size === 'medium', action: () => setSize('medium') },
+          { label: t('desktop.smallIcons'), checked: size === 'small', action: () => setSize('small') },
+          '-',
+          { label: t('desktop.showIcons'), checked: OS.settings.get('showDesktopIcons') !== false, action: () => OS.settings.set('showDesktopIcons', OS.settings.get('showDesktopIcons') === false) },
+        ],
+      },
+      {
+        label: t('desktop.sortBy'), icon: 'sort',
+        submenu: ['name', 'size', 'type', 'date'].map((key) => ({ label: t(`desktop.sort.${key}`), action: () => sortBy(key) })),
+      },
+      { label: t('desktop.refresh'), icon: 'refresh', action: refresh },
+      '-',
       { label: t('desktop.paste'), icon: 'paste', shortcut: 'Ctrl+V', disabled: !ops.clipboard.paths.length, action: () => ops.paste(DESKTOP) },
+      {
+        label: t('desktop.new'), icon: 'plus',
+        submenu: [
+          { label: t('desktop.newFolder'), icon: 'folder', action: () => createAndRename(ops.newFolder) },
+          '-',
+          { label: t('desktop.newTextFile'), icon: 'fileText', action: () => createAndRename(ops.newTextFile) },
+        ],
+      },
       { label: t('desktop.import'), icon: 'upload', action: () => ops.pickAndImport(DESKTOP) },
       '-',
-      { label: t('desktop.refresh'), icon: 'refresh', action: refresh },
-      { label: t('desktop.sortByName'), icon: 'grid', action: () => { OS.settings.set('desktopPositions', {}); render(); } },
-      '-',
-      { label: t('desktop.openInApp', { app: OS.apps.get('explorer').name }), icon: 'folder', action: () => OS.wm.open('explorer', { path: DESKTOP }) },
-      { label: t('desktop.openAppHere', { app: OS.apps.get('terminal').name }), icon: 'terminal', action: () => OS.wm.open('terminal', { cwd: DESKTOP }) },
-      '-',
+      { label: t('desktop.display'), icon: 'monitor', action: () => OS.wm.open('settings', { section: 'system' }) },
       { label: t('desktop.personalize'), icon: 'palette', action: () => OS.wm.open('settings', { section: 'personalization' }) },
+      '-',
+      { label: t('desktop.openInApp', { app: OS.apps.get('explorer').name }), iconHtml: OS.icons.appIcon(OS.apps.get('explorer'), 'xs'), action: () => OS.wm.open('explorer', { path: DESKTOP }) },
+      { label: t('desktop.openInApp', { app: OS.apps.get('terminal').name }), iconHtml: OS.icons.appIcon(OS.apps.get('terminal'), 'xs'), action: () => OS.wm.open('terminal', { cwd: DESKTOP }) },
     ]);
   }
 
@@ -377,7 +440,14 @@
       if (paths.some((p) => p === '/' || p.startsWith(DESKTOP) || DESKTOP.startsWith(p + '/'))) render();
     });
     ops.on('clipboard', render);
+    OS.settings.on('change', (key) => {
+      if (key === 'desktopIconSize' || key === 'showDesktopIcons') {
+        applyView();
+        render();
+      }
+    });
     window.addEventListener('resize', debounce(render, 120));
+    applyView();
     render();
   }
 

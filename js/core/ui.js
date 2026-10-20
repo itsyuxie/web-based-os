@@ -12,62 +12,30 @@
   /* Context menu                                                       */
   /* ------------------------------------------------------------------ */
 
-  let activeMenu = null;
+  // Open menus, root first; submenus are pushed on top.
+  let menuStack = [];
+  let submenuTimer = null;
 
   function closeMenu() {
-    if (!activeMenu) return;
-    const { el, onClose } = activeMenu;
-    activeMenu = null;
-    el.remove();
-    if (onClose) onClose();
+    clearTimeout(submenuTimer);
+    if (!menuStack.length) return;
+    const root = menuStack[0];
+    menuStack.forEach((m) => m.el.remove());
+    menuStack = [];
+    if (root.onClose) root.onClose();
   }
 
-  /**
-   * Show a menu at (x, y). Items: { label, icon, shortcut, action, disabled, danger, checked } or '-'.
-   * Pass { above: true } to open upwards from the point (used by the taskbar).
-   */
-  function contextMenu(x, y, items, opts = {}) {
-    closeMenu();
-    const list = items.filter(Boolean);
-    const el = h('div', { class: 'menu', role: 'menu' });
-    const buttons = [];
-    list.forEach((item) => {
-      if (item === '-') {
-        el.appendChild(h('div', { class: 'menu-sep', role: 'separator' }));
-        return;
-      }
-      if (item.header) {
-        el.appendChild(h('div', { class: 'menu-header', text: item.header }));
-        return;
-      }
-      const btn = h('button', {
-        class: `menu-item${item.danger ? ' danger' : ''}${item.checked ? ' checked' : ''}`,
-        role: 'menuitem',
-        disabled: !!item.disabled,
-        html:
-          `<span class="menu-icon">${item.iconHtml || (item.icon ? glyph(item.icon) : item.checked ? glyph('check') : '')}</span>` +
-          `<span class="menu-label">${escapeHtml(item.label)}</span>` +
-          (item.shortcut ? `<span class="menu-shortcut">${escapeHtml(item.shortcut)}</span>` : ''),
-        onclick: (e) => {
-          e.stopPropagation();
-          closeMenu();
-          if (item.action) item.action();
-        },
-      });
-      buttons.push(btn);
-      el.appendChild(btn);
-    });
+  function closeSubmenusAbove(level) {
+    while (menuStack.length > level + 1) {
+      const m = menuStack.pop();
+      m.el.remove();
+      if (m.owner) m.owner.classList.remove('open');
+    }
+  }
 
-    el.addEventListener('keydown', (e) => {
-      const enabled = buttons.filter((b) => !b.disabled);
-      const idx = enabled.indexOf(document.activeElement);
-      if (e.key === 'ArrowDown') { e.preventDefault(); enabled[(idx + 1) % enabled.length].focus(); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); enabled[(idx - 1 + enabled.length) % enabled.length].focus(); }
-      else if (e.key === 'Escape') { e.preventDefault(); closeMenu(); }
-    });
-    el.addEventListener('contextmenu', (e) => e.preventDefault());
+  const insideMenu = (target) => menuStack.some((m) => m.el.contains(target));
 
-    popupLayer().appendChild(el);
+  function placeMenu(el, x, y, opts) {
     const rect = el.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -79,7 +47,136 @@
     if (top < 4) top = 4;
     el.style.left = `${left}px`;
     el.style.top = `${top}px`;
-    activeMenu = { el, onClose: opts.onClose };
+  }
+
+  function openSubmenu(btn, items, level, focus) {
+    closeSubmenusAbove(level);
+    btn.classList.add('open');
+    const { el, buttons } = renderMenu(items, level + 1);
+    popupLayer().appendChild(el);
+    const r = btn.getBoundingClientRect();
+    const m = el.getBoundingClientRect();
+    let left = r.right + 2;
+    if (left + m.width > window.innerWidth - 4) left = Math.max(4, r.left - m.width - 2);
+    let top = r.top - 5;
+    if (top + m.height > window.innerHeight - 4) top = Math.max(4, window.innerHeight - m.height - 4);
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+    menuStack.push({ el, owner: btn });
+    if (focus) {
+      const first = buttons.find((b) => !b.disabled);
+      if (first) first.focus({ preventScroll: true });
+    }
+  }
+
+  /**
+   * Build one menu level. Items:
+   *   { label, icon | iconHtml, shortcut, action, disabled, danger, checked, submenu: [...] }
+   *   { row: [{ icon, label, action, disabled, danger }] }   compact icon buttons (Cut, Copy, …)
+   *   { header: 'Title' } and '-' separators.
+   */
+  function renderMenu(items, level) {
+    const el = h('div', { class: `menu${level ? ' submenu' : ''}`, role: 'menu' });
+    const buttons = [];
+    items.filter(Boolean).forEach((item) => {
+      if (item === '-') {
+        el.appendChild(h('div', { class: 'menu-sep', role: 'separator' }));
+        return;
+      }
+      if (item.header) {
+        el.appendChild(h('div', { class: 'menu-header', text: item.header }));
+        return;
+      }
+      if (item.row) {
+        const row = h('div', { class: 'menu-row' });
+        item.row.filter(Boolean).forEach((b) => {
+          const btn = h('button', {
+            class: `menu-row-btn${b.danger ? ' danger' : ''}`,
+            role: 'menuitem',
+            title: b.label,
+            'aria-label': b.label,
+            disabled: !!b.disabled,
+            html: glyph(b.icon),
+            onclick: (e) => {
+              e.stopPropagation();
+              closeMenu();
+              if (b.action) b.action();
+            },
+          });
+          btn.addEventListener('pointerenter', () => closeSubmenusAbove(level));
+          buttons.push(btn);
+          row.appendChild(btn);
+        });
+        el.appendChild(row);
+        return;
+      }
+      const btn = h('button', {
+        class: `menu-item${item.danger ? ' danger' : ''}${item.checked ? ' checked' : ''}`,
+        role: 'menuitem',
+        disabled: !!item.disabled,
+        'aria-haspopup': item.submenu ? 'menu' : null,
+        html:
+          `<span class="menu-icon">${item.iconHtml || (item.icon ? glyph(item.icon) : item.checked ? glyph('check') : '')}</span>` +
+          `<span class="menu-label">${escapeHtml(item.label)}</span>` +
+          (item.submenu ? glyph('chevronRight', 'menu-arrow') : item.shortcut ? `<span class="menu-shortcut">${escapeHtml(item.shortcut)}</span>` : ''),
+      });
+      if (item.submenu) {
+        btn._submenu = item.submenu;
+        btn.addEventListener('pointerenter', () => {
+          clearTimeout(submenuTimer);
+          submenuTimer = setTimeout(() => openSubmenu(btn, item.submenu, level, false), 220);
+        });
+        btn.addEventListener('pointerleave', () => clearTimeout(submenuTimer));
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          clearTimeout(submenuTimer);
+          openSubmenu(btn, item.submenu, level, e.detail === 0);
+        });
+      } else {
+        btn.addEventListener('pointerenter', () => {
+          clearTimeout(submenuTimer);
+          submenuTimer = setTimeout(() => closeSubmenusAbove(level), 220);
+        });
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          closeMenu();
+          if (item.action) item.action();
+        });
+      }
+      buttons.push(btn);
+      el.appendChild(btn);
+    });
+
+    el.addEventListener('keydown', (e) => {
+      const enabled = buttons.filter((b) => !b.disabled);
+      const idx = enabled.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); enabled[(idx + 1) % enabled.length].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); enabled[(idx - 1 + enabled.length) % enabled.length].focus(); }
+      else if (e.key === 'ArrowRight' && document.activeElement && document.activeElement._submenu) {
+        e.preventDefault();
+        openSubmenu(document.activeElement, document.activeElement._submenu, level, true);
+      } else if ((e.key === 'ArrowLeft' || e.key === 'Escape') && level > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        const owner = menuStack[level] && menuStack[level].owner;
+        closeSubmenusAbove(level - 1);
+        if (owner) owner.focus({ preventScroll: true });
+      } else if (e.key === 'Escape') { e.preventDefault(); closeMenu(); }
+    });
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+    return { el, buttons };
+  }
+
+  /**
+   * Show a menu at (x, y). See renderMenu() for the item format.
+   * Pass { above: true } to open upwards from the point (used by the taskbar).
+   */
+  function contextMenu(x, y, items, opts = {}) {
+    closeMenu();
+    const { el, buttons } = renderMenu(items, 0);
+    popupLayer().appendChild(el);
+    placeMenu(el, x, y, opts);
+    menuStack = [{ el, onClose: opts.onClose }];
     const first = buttons.find((b) => !b.disabled);
     if (first && opts.focus !== false) first.focus({ preventScroll: true });
     return el;
@@ -116,7 +213,7 @@
   document.addEventListener(
     'pointerdown',
     (e) => {
-      if (activeMenu && !activeMenu.el.contains(e.target)) closeMenu();
+      if (menuStack.length && !insideMenu(e.target)) closeMenu();
       if (activePopup && !activePopup.el.contains(e.target) && !(activePopup.owner && activePopup.owner.contains(e.target)) && !e.target.closest('.menu')) {
         closePopup();
       }
@@ -125,7 +222,7 @@
   );
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    if (activeMenu) closeMenu();
+    if (menuStack.length) closeMenu();
     else if (activePopup) closePopup();
   });
   window.addEventListener('blur', closeMenu);
@@ -272,6 +369,13 @@
       render();
     }
 
+    // Shortcuts and images need their content to draw the right icon.
+    const iconData = (entry) => {
+      if (entry.type !== 'file') return null;
+      const ext = OS.utils.extname(entry.name);
+      return ext === 'app' || OS.icons.fileKind(entry.name) === 'image' ? vfs.readFile(entry.path) : null;
+    };
+
     function render() {
       pathLabel.textContent = cwd.replace(vfs.HOME, '~');
       upBtn.disabled = cwd === '/';
@@ -283,7 +387,7 @@
       entries.forEach((entry) => {
         const row = h('div', {
           class: 'picker-item',
-          html: `<span class="picker-icon">${entry.type === 'dir' ? OS.icons.folder : OS.icons.forEntry(entry)}</span><span>${escapeHtml(entry.name)}</span>`,
+          html: `<span class="picker-icon">${OS.icons.forEntry(entry, iconData(entry))}</span><span>${escapeHtml(OS.fileOps.displayName(entry.name))}</span>`,
           onclick: () => {
             list.querySelectorAll('.selected').forEach((n) => n.classList.remove('selected'));
             row.classList.add('selected');
@@ -373,11 +477,11 @@
       class: 'toast',
       role: 'status',
       html:
-        `<div class="toast-icon">${appDef ? OS.icons.appIcon(appDef) : glyph(icon)}</div>` +
-        `<div class="toast-text"><div class="toast-title">${escapeHtml(title)}</div>${body ? `<div class="toast-body">${escapeHtml(body)}</div>` : ''}</div>`,
+        `<div class="toast-head">${appDef ? OS.icons.appIcon(appDef, 'xs') : glyph(icon)}<span>${escapeHtml(appDef ? appDef.name : 'AwanOS')}</span></div>` +
+        `<div class="toast-title">${escapeHtml(title)}</div>${body ? `<div class="toast-body">${escapeHtml(body)}</div>` : ''}`,
     });
-    const closeBtn = h('button', { class: 'toast-close', title: OS.t('common.dismiss'), html: glyph('close') });
-    toast.appendChild(closeBtn);
+    const closeBtn = h('button', { class: 'toast-close', title: OS.t('common.dismiss'), 'aria-label': OS.t('common.dismiss'), html: glyph('close') });
+    toast.querySelector('.toast-head').appendChild(closeBtn);
     const dismiss = () => {
       toast.classList.add('leaving');
       setTimeout(() => toast.remove(), 220);
@@ -432,8 +536,30 @@
     });
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Sliders: the filled part of the track follows the value (--fill)    */
+  /* ------------------------------------------------------------------ */
+
+  function syncRange(el) {
+    const min = Number(el.min) || 0;
+    const max = el.max === '' ? 100 : Number(el.max);
+    const pct = max > min ? ((Number(el.value) - min) / (max - min)) * 100 : 0;
+    el.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
+  }
+  const isRange = (el) => el.tagName === 'INPUT' && el.type === 'range';
+  document.addEventListener('input', (e) => { if (isRange(e.target)) syncRange(e.target); }, true);
+  new window.MutationObserver((records) => {
+    for (const r of records) {
+      r.addedNodes.forEach((n) => {
+        if (n.nodeType !== 1) return;
+        if (isRange(n)) syncRange(n);
+        else n.querySelectorAll('input[type="range"]').forEach(syncRange);
+      });
+    }
+  }).observe(document.documentElement, { childList: true, subtree: true });
+
   OS.ui = {
-    contextMenu, closeMenu,
+    contextMenu, closeMenu, syncRange,
     openPopup, closePopup, isPopupOpen,
     dialog, alert, confirm, prompt, showError, pickFile,
     inlineEdit,

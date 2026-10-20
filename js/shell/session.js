@@ -8,7 +8,7 @@
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const t = OS.t;
-  const timeFmt = new Intl.DateTimeFormat(OS.i18n.locale, { hour: '2-digit', minute: '2-digit' });
+  const timeFmt = new Intl.DateTimeFormat(OS.i18n.locale, { hour: 'numeric', minute: '2-digit' });
   const dateFmt = new Intl.DateTimeFormat(OS.i18n.locale, { weekday: 'long', day: 'numeric', month: 'long' });
 
   let locked = false;
@@ -42,14 +42,26 @@
     $('lock-screen').querySelector('.lock-date').textContent = dateFmt.format(d);
   }
 
+  function renderUser() {
+    const screen = $('lock-screen');
+    const name = OS.settings.userName();
+    screen.querySelector('.lock-user').textContent = name;
+    screen.querySelector('.avatar').textContent = name.charAt(0).toLocaleUpperCase(OS.i18n.locale) || '?';
+  }
+
+  /** Network and battery glyphs in the corner, as on the Windows lock screen. */
+  function renderStatus() {
+    const s = OS.settings;
+    $('lock-screen').querySelector('.lock-status').innerHTML = glyph(s.get('airplane') ? 'plane' : 'wifi') + glyph('battery');
+  }
+
   function lock() {
     const screen = $('lock-screen');
-    const name = OS.settings.get('username') || OS.settings.DEFAULTS.username;
     OS.ui.closeMenu();
     OS.ui.closePopup();
     screen.classList.remove('login');
-    screen.querySelector('.lock-user').textContent = name;
-    screen.querySelector('.avatar').textContent = name.trim().charAt(0).toUpperCase() || '?';
+    renderUser();
+    renderStatus();
     OS.applySettings('wallpaper');
     updateLockClock();
     clearInterval(lockTimer);
@@ -75,7 +87,7 @@
       setTimeout(() => {
         const readme = t('fs.readmeName');
         OS.notify({
-          title: t('session.welcomeTitle', { name: OS.settings.get('username') }),
+          title: t('session.welcomeTitle', { name: OS.settings.userName() }),
           body: t('session.welcomeBody', { file: readme }),
           icon: 'cloud',
           timeout: 8000,
@@ -150,9 +162,8 @@
     });
 
     OS.settings.on('change', (key) => {
-      if (key === 'username') {
-        lockScreen.querySelector('.lock-user').textContent = OS.settings.get('username');
-      }
+      if (key === 'username') renderUser();
+      if (key === 'wifi' || key === 'airplane') renderStatus();
     });
 
     const params = new URLSearchParams(location.search);

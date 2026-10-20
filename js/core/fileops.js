@@ -21,7 +21,8 @@
   function displayName(name) {
     if (extname(name) !== 'app') return name;
     const stem = stripExt(name);
-    const m = /^(.*?)( \(\d+\))?$/.exec(stem);
+    // "notepad (2) (3)" keeps every copy suffix after the app name.
+    const m = /^(.*?)((?: \(\d+\))*)$/.exec(stem);
     const app = OS.apps.get(m[1]);
     return app ? app.name + (m[2] || '') : stem;
   }
@@ -191,29 +192,37 @@
   }
 
   /** Context-menu entries for a selection of paths. */
+  /** Windows 11–style item menu: a compact row of common commands, then the rest. */
   function itemMenu(paths, { onRename } = {}) {
     const single = paths.length === 1 ? paths[0] : null;
     const stat = single ? vfs.stat(single) : null;
     const isApp = single && extname(single) === 'app';
-    const items = [{ label: OS.t('common.open'), icon: 'open', action: () => paths.forEach((p) => OS.apps.openPath(p)) }];
+    const items = [
+      {
+        row: [
+          { label: OS.t('fileops.cut'), icon: 'cut', action: () => setClipboard('cut', paths) },
+          { label: OS.t('fileops.copy'), icon: 'copy', action: () => setClipboard('copy', paths) },
+          { label: OS.t('fileops.rename'), icon: 'edit', disabled: !single || !onRename, action: () => onRename(single) },
+          { label: OS.t('common.delete'), icon: 'trash', action: () => remove(paths) },
+        ],
+      },
+      { label: OS.t('common.open'), icon: 'open', shortcut: 'Enter', action: () => paths.forEach((p) => OS.apps.openPath(p)) },
+    ];
     if (stat && stat.type === 'file' && !isApp) {
-      OS.apps.handlersFor(single).slice(1).forEach((app) => {
-        items.push({ label: OS.t('fileops.openWith', { app: app.name }), iconHtml: OS.icons.appIcon(app, 'xs'), action: () => OS.apps.openPath(single, app.id) });
-      });
+      const handlers = OS.apps.handlersFor(single);
+      if (handlers.length > 1) {
+        items.push({
+          label: OS.t('fileops.openWithMenu'), icon: 'apps',
+          submenu: handlers.map((app) => ({ label: app.name, iconHtml: OS.icons.appIcon(app, 'xs'), action: () => OS.apps.openPath(single, app.id) })),
+        });
+      }
     }
     if (stat && stat.type === 'dir') {
-      items.push({ label: OS.t('fileops.openIn', { app: OS.apps.get('terminal').name }), icon: 'terminal', action: () => OS.wm.open('terminal', { cwd: single }) });
+      items.push({ label: OS.t('fileops.openIn', { app: OS.apps.get('terminal').name }), iconHtml: OS.icons.appIcon(OS.apps.get('terminal'), 'xs'), action: () => OS.wm.open('terminal', { cwd: single }) });
     }
-    items.push(
-      '-',
-      { label: OS.t('fileops.cut'), icon: 'cut', shortcut: 'Ctrl+X', action: () => setClipboard('cut', paths) },
-      { label: OS.t('fileops.copy'), icon: 'copy', shortcut: 'Ctrl+C', action: () => setClipboard('copy', paths) },
-      { label: OS.t('fileops.rename'), icon: 'edit', shortcut: 'F2', disabled: !single || !onRename, action: () => onRename(single) },
-      { label: OS.t('common.delete'), icon: 'trash', shortcut: 'Del', danger: true, action: () => remove(paths) },
-      '-'
-    );
+    items.push('-');
     if (stat && stat.type === 'file' && !isApp) items.push({ label: OS.t('fileops.download'), icon: 'download', action: () => download(single) });
-    if (single) items.push({ label: OS.t('fileops.properties'), icon: 'info', action: () => properties(single) });
+    if (single) items.push({ label: OS.t('fileops.properties'), icon: 'info', shortcut: 'Alt+Enter', action: () => properties(single) });
     return items;
   }
 
