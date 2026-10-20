@@ -1532,6 +1532,11 @@ body.wm-busy iframe { pointer-events: none; }
 }
 
 @media (max-width: 700px) {
+  /* Apps start at the left and scroll; the tray keeps its room. */
+  #taskbar, #taskbar.align-left { grid-template-columns: minmax(0, 1fr) auto; }
+  #taskbar-main, #taskbar.align-left #taskbar-main { grid-column: 1; justify-self: stretch; padding-left: 4px; gap: 2px; }
+  #tray, #taskbar.align-left #tray { grid-column: 2; }
+  #taskbar-apps { flex: 1; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 20px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 20px), transparent); padding-right: 16px; }
   .win-max, .rz { display: none; }
   .win-titlebar { height: 40px; }
   #tray-clock .clock-date { display: none; }
