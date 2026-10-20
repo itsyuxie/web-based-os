@@ -1,8 +1,9 @@
 # AwanOS — OS Desktop Berbasis Web Statis
 
-AwanOS adalah sistem operasi desktop yang berjalan sepenuhnya di browser. Seluruhnya dibuat dengan
-HTML, CSS, dan JavaScript murni: **tanpa server, tanpa proses build, tanpa dependensi**. Cukup buka
-`index.html`, atau unggah foldernya ke hosting statis mana pun.
+AwanOS adalah sistem operasi desktop yang berjalan sepenuhnya di browser, dengan tampilan dan cara kerja
+yang meniru **Windows 11** (desain Fluent: material Mica dan Acrylic, sudut membulat, taskbar di tengah).
+Seluruhnya dibuat dengan HTML, CSS, dan JavaScript murni: **tanpa server, tanpa proses build, tanpa
+dependensi**. Cukup buka `index.html`, atau unggah foldernya ke hosting statis mana pun.
 
 ![Tangkapan layar AwanOS](assets/screenshot.webp)
 
@@ -11,19 +12,25 @@ HTML, CSS, dan JavaScript murni: **tanpa server, tanpa proses build, tanpa depen
 - **Multibahasa**: antarmuka sistem tersedia dalam **bahasa Inggris** dan **Mandarin (简体中文)**, satu berkas
   per bahasa. Setiap aplikasi punya berkas bahasanya sendiri; saat ini semua aplikasi berbahasa Inggris.
   Ganti bahasa di **Settings → Language** (berlaku setelah mulai ulang).
-- **Sesi lengkap**: layar boot, layar kunci dengan jam, login, kunci, keluar, mulai ulang, dan matikan.
-- **Window manager**: jendela bisa digeser, diubah ukurannya dari 8 sisi, diminimalkan (dengan animasi ke
-  bilah tugas), dimaksimalkan, dan di-*snap* (seret ke tepi kiri/kanan untuk membagi layar, ke atas untuk
-  memaksimalkan). Klik dua kali judul jendela untuk maksimalkan/pulihkan.
+- **Sesi lengkap**: layar boot, layar kunci dengan jam besar, layar masuk, kunci, keluar, mulai ulang,
+  dan matikan.
+- **Window manager**: jendela dengan tombol *caption* ala Windows 11, bisa digeser, diubah ukurannya dari
+  8 sisi, diminimalkan (dengan animasi ke taskbar), dan dimaksimalkan. **Snap Layouts** muncul saat kursor
+  diam di atas tombol maksimalkan; seret jendela ke tepi kiri/kanan untuk membagi layar, ke sudut untuk
+  seperempat layar, atau ke atas untuk memaksimalkan. Aplikasi bisa menaruh tab di *title bar*.
 - **Desktop**: ikon yang bisa diseret ke petak grid (posisinya diingat), seleksi kotak, rename langsung
-  di tempat, menu klik kanan, dan seret-lepas ke folder.
-- **Bilah tugas**: menu Mulai dengan pencarian aplikasi, berkas, dan web; aplikasi yang disematkan;
-  indikator jendela aktif; pengaturan cepat (Wi-Fi, Bluetooth, mode pesawat, mode gelap, lampu malam,
-  kecerahan, volume); kalender dan riwayat notifikasi.
+  di tempat, seret-lepas ke folder, dan menu klik kanan ala Windows 11 (submenu *View* untuk ukuran ikon,
+  *Sort by*, *New*, serta baris ikon ringkas Cut/Copy/Rename/Delete untuk berkas).
+- **Taskbar** di tengah (bisa dipindah ke kiri): menu **Start** dengan aplikasi yang disematkan, *All apps*,
+  *Recommended* (berkas terbaru), dan pencarian aplikasi/berkas/web dengan panel pratinjau; kotak
+  **Search**; indikator jendela aktif; **Quick Settings** (Wi-Fi, Bluetooth, mode pesawat, mode gelap, lampu
+  malam, animasi, kecerahan, volume); **pusat notifikasi** dengan kalender.
 - **Sistem berkas virtual** yang tersimpan di `localStorage`: buat, ganti nama, salin, potong, tempel,
   hapus, impor berkas asli dari komputer (seret-lepas atau tombol unggah), dan unduh kembali.
-- **Personalisasi**: 8 wallpaper bawaan plus gambar sendiri, tema terang/gelap, warna aksen,
-  efek transparansi, dan animasi.
+- **Personalisasi**: 9 wallpaper bawaan (termasuk *Ribbons* yang berganti mengikuti tema terang/gelap) plus
+  gambar sendiri, tema terang/gelap, warna aksen, efek transparansi, animasi, perataan taskbar, dan ukuran
+  ikon desktop.
+- **Ikon orisinal** bergaya Fluent untuk aplikasi, folder, dan jenis berkas, semuanya berupa berkas SVG.
 - **Cadangan**: ekspor dan impor semua berkas serta pengaturan sebagai satu berkas JSON.
 - **Responsif**: di layar ponsel jendela otomatis dimaksimalkan dan ikon bisa dibuka dengan sekali ketuk.
 
@@ -123,8 +130,8 @@ akhiran `_one` / `_other` ketika parameter `count` diberikan:
 ```js
 OS.t('start.lock');                              // teks sistem
 const t = OS.i18n.forApp('notepad');             // teks aplikasi
-t('menu.save');
-t('status.chars', { count: 12 });                // status.chars_one / status.chars_other
+t('menu.file.save');
+t('status.characters', { count: 12, number: '12' });  // status.characters_one / status.characters_other
 new Intl.NumberFormat(t.locale).format(1234.5);  // format angka/tanggal sesuai bahasa
 ```
 
@@ -145,7 +152,7 @@ lalu tambahkan kodenya ke `languages` di `OS.apps.register` aplikasi tersebut, m
 index.html            Kerangka halaman dan urutan pemuatan skrip/gaya
 lang/                 Teks sistem — satu berkas per bahasa (en.js, zh.js)
 apps/                 Aplikasi — satu aplikasi satu folder
-  explorer/           File Explorer
+  explorer/           File Explorer (setiap folder aplikasi juga berisi icon.svg)
   notepad/            Notepad
   terminal/           Terminal
   browser/            Browser
@@ -159,10 +166,10 @@ apps/                 Aplikasi — satu aplikasi satu folder
     app.js            (setiap folder) logika aplikasi & pendaftarannya
     style.css         (setiap folder) gaya khusus aplikasi
     lang/en.js        (setiap folder) teks aplikasi — satu berkas per bahasa
-css/system.css        Gaya shell: token tema, jendela, bilah tugas, menu, dialog, toolbar bersama
+css/system.css        Gaya shell (Fluent/Windows 11): token tema, jendela, taskbar, menu, dialog, kontrol
 js/core/              Inti sistem
   utils.js            Pembuat DOM, event emitter, format angka/tanggal
-  icons.js            Set ikon SVG inline
+  icons.js            Glyph UI monokrom (SVG inline) dan ikon berwarna (berkas SVG)
   settings.js         Penyimpanan, pengaturan, wallpaper, tema
   i18n.js             Daftar bahasa, pencarian teks, dan pemuatan berkas bahasa
   vfs.js              Sistem berkas virtual (localStorage)
@@ -174,11 +181,13 @@ js/core/              Inti sistem
 js/shell/             Desktop, bilah tugas, dan siklus sesi
 js/main.js            Bootstrap dan pintasan global
 assets/               Favicon, wallpaper SVG, tangkapan layar
+  icons/              Ikon folder, jenis berkas, logo, dan panah pintasan
 ```
 
 ## Membuat aplikasi sendiri
 
-1. Buat folder baru `apps/<id>/` berisi `app.js`, `lang/en.js`, dan `style.css` bila perlu.
+1. Buat folder baru `apps/<id>/` berisi `app.js`, `lang/en.js`, `icon.svg` (ikon aplikasi, dipakai otomatis
+   di menu Start, taskbar, dan jendela), serta `style.css` bila perlu.
 2. Muat skrip dan gayanya di `index.html`: `<link rel="stylesheet" href="apps/<id>/style.css">` di dalam
    `<head>`, dan `<script src="apps/<id>/app.js"></script>` di bagian *Applications*, sebelum skrip shell.
    Berkas bahasanya dimuat otomatis — tidak perlu tag tambahan.
@@ -204,13 +213,11 @@ OS.i18n.register('en', {
   OS.apps.register({
     id: 'halo',
     languages: ['en'],              // bahasa yang punya berkas di apps/halo/lang/
-    icon: 'smile',                  // nama glyph dari js/core/icons.js
-    colors: ['#f59e0b', '#ef4444'], // gradasi ikon
     width: 360,
     height: 240,
     launch(win, args) {
       win.body.classList.add('halo');
-      win.body.append(h('div', { class: 'halo-pesan' }, t('message', { user: OS.settings.get('username') })));
+      win.body.append(h('div', { class: 'halo-pesan' }, t('message', { user: OS.settings.userName() })));
       win.on('close', () => console.log('window closed'));
     },
   });
@@ -220,9 +227,11 @@ OS.i18n.register('en', {
 Awali selektor di `style.css` dengan kelas aplikasimu (misalnya `.halo-pesan { padding: 24px; }`)
 agar gayanya tidak bocor ke aplikasi lain.
 
-API yang tersedia antara lain `OS.wm.open(id, args)`, `OS.vfs.readFile/writeFile/readdir/…`,
-`OS.ui.alert/confirm/prompt/pickFile`, `OS.notify({ title, body })`, `OS.settings.get/set`, dan
-`OS.t` / `OS.i18n.forApp`.
+API yang tersedia antara lain `OS.wm.open(id, args)`, `win.setTitle(teks)`, `win.setTitlebarContent(elemen)`
+(misalnya untuk tab di *title bar*), `OS.vfs.readFile/writeFile/readdir/…`, `OS.ui.alert/confirm/prompt/pickFile`,
+`OS.ui.contextMenu(x, y, items)`, `OS.notify({ title, body, app })`, `OS.settings.get/set`, `OS.icons.glyph(nama)`,
+dan `OS.t` / `OS.i18n.forApp`. Kelas kontrol bersama seperti `.btn`, `.btn-primary`, `.input`, `.switch`,
+`.card`, `.toolbar`, dan `.nav-item` sudah tersedia di `css/system.css`.
 
 ## Catatan
 
@@ -235,3 +244,6 @@ API yang tersedia antara lain `OS.wm.open(id, args)`, `OS.vfs.readFile/writeFile
 - Banyak situs (misalnya YouTube atau GitHub) melarang ditampilkan di dalam iframe, sehingga tidak bisa
   dibuka di aplikasi Browser. Gunakan tombol untuk membuka di tab baru bagi situs seperti itu.
 - Membutuhkan browser modern (Chrome/Edge 111+, Firefox 113+, Safari 16.4+).
+- AwanOS adalah proyek independen yang hanya meniru gaya visual Windows 11. Proyek ini tidak berafiliasi
+  dengan Microsoft dan tidak memakai logo, ikon, font, atau wallpaper milik Microsoft; semua ikon dan
+  wallpaper dibuat sendiri. Windows adalah merek dagang Microsoft Corporation.
