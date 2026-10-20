@@ -226,6 +226,7 @@
         const data = {
           app: 'AwanOS',
           version: OS.version,
+          dataVersion: OS.storage.read('dataVersion', 1),
           exportedAt: new Date().toISOString(),
           settings: s.all(),
           wallpaper: s.customWallpaper(),
@@ -249,6 +250,8 @@
             OS.vfs.importData(data.fs);
             OS.vfs.flush();
             OS.storage.write('settings', data.settings || {});
+            // Older backups are upgraded on the next start (see migrate.js).
+            OS.storage.write('dataVersion', data.dataVersion || 1);
             if (data.wallpaper) OS.storage.write('wallpaper', data.wallpaper);
             location.reload();
           } catch (err) {
@@ -262,7 +265,7 @@
       resetBtn.addEventListener('click', async () => {
         const ok = await OS.ui.confirm(t('reset.confirm'), { title: t('reset.title'), okLabel: t('reset.button'), danger: true });
         if (!ok) return;
-        OS.vfs.reset();
+        OS.vfs.discard();
         OS.storage.clearAll();
         location.reload();
       });

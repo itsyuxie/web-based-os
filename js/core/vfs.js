@@ -339,6 +339,11 @@
       changed('/');
     },
 
+    /** Forget the tree without saving it, so the next start is a fresh install (used by Settings ▸ Reset). */
+    discard() {
+      root = null;
+    },
+
     /**
      * Load the stored tree, or create the default one on first boot.
      * Returns true when a fresh tree was created.

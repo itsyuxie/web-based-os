@@ -649,6 +649,11 @@ body.wm-busy iframe { pointer-events: none; }
   color: var(--text-3);
 }
 .window.active .win-title { color: var(--text); }
+/* Title bar with app content (tabs): taller, and the content replaces the title text. */
+.win-title-slot { display: none; flex: 1; min-width: 0; align-self: stretch; align-items: stretch; }
+.win-titlebar.has-content { height: 40px; gap: 8px; }
+.win-titlebar.has-content .win-title { display: none; }
+.win-titlebar.has-content .win-title-slot { display: flex; }
 .win-controls { display: flex; align-self: stretch; }
 .win-btn {
   width: 46px;

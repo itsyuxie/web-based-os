@@ -130,6 +130,7 @@
         '<div class="win-titlebar">' +
         `<span class="win-icon">${OS.icons.appIcon(app, 'xs')}</span>` +
         '<span class="win-title"></span>' +
+        '<div class="win-title-slot"></div>' +
         '<div class="win-controls">' +
         `<button class="win-btn win-min" title="${label('minimize')}" aria-label="${label('minimize')}">${caption('minimize')}</button>` +
         (this.resizable ? `<button class="win-btn win-max" title="${label('maximize')}" aria-label="${label('maximize')}">${caption('maximize')}</button>` : '') +
@@ -166,12 +167,14 @@
         });
       }
 
+      // Controls an app puts in the title bar (tabs, buttons) don't start a drag.
+      const NO_DRAG = '.win-btn, .no-drag, button, input, select, textarea, a, [role="tab"]';
       this.titlebar.addEventListener('pointerdown', (e) => {
-        if (e.button !== 0 || e.target.closest('.win-btn')) return;
+        if (e.button !== 0 || e.target.closest(NO_DRAG)) return;
         this.startDrag(e);
       });
       this.titlebar.addEventListener('dblclick', (e) => {
-        if (e.target.closest('.win-btn') || !this.resizable) return;
+        if (e.target.closest(NO_DRAG) || !this.resizable) return;
         this.toggleMaximize();
       });
       this.titlebar.addEventListener('contextmenu', (e) => {
@@ -204,6 +207,16 @@
       s.top = `${Math.round(this.rect.y)}px`;
       s.width = `${Math.round(this.rect.w)}px`;
       s.height = `${Math.round(this.rect.h)}px`;
+    }
+
+    /**
+     * Put app content (for example a tab strip) in the title bar, as Windows 11 apps do.
+     * The window title stays as the accessible name and taskbar label. Pass null to remove it.
+     */
+    setTitlebarContent(node) {
+      const slot = this.titlebar.querySelector('.win-title-slot');
+      slot.replaceChildren(...(node ? [node] : []));
+      this.titlebar.classList.toggle('has-content', !!node);
     }
 
     setTitle(title) {
