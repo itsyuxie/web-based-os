@@ -1,0 +1,120 @@
+/* AwanOS — Penjelajah Berkas */
+
+.explorer .fx-address { flex: 1; min-width: 100px; }
+.explorer .fx-search { width: 190px; flex: none; }
+.fx-main { flex: 1; display: flex; min-height: 0; }
+.fx-sidebar {
+  width: 186px;
+  flex: none;
+  padding: 8px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.fx-place {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+}
+.fx-place .glyph { width: 16px; height: 16px; color: var(--accent-text); }
+.fx-place:hover { background: var(--hover); }
+.fx-place.active { background: var(--selection); }
+.fx-place.drop-target { outline: 2px dashed var(--accent); outline-offset: -2px; }
+.fx-sep { height: 1px; background: var(--border); margin: 8px 4px; }
+
+.fx-content {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 10px;
+  position: relative;
+  outline: none;
+  align-content: start;
+}
+.fx-content.view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px; }
+.view-grid .fx-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  text-align: center;
+  min-width: 0;
+}
+.view-grid .fx-icon { width: 52px; height: 52px; display: grid; place-items: center; pointer-events: none; }
+.view-grid .fx-icon .app-tile { --size: 44px; }
+.fx-name {
+  font-size: 12.5px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fx-item:hover { background: var(--hover); }
+.fx-item.selected { background: var(--selection); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.view-grid .fx-item.selected .fx-name { -webkit-line-clamp: 4; }
+.fx-item.cut { opacity: .5; }
+.fx-item.drop-target { outline: 2px dashed var(--accent); outline-offset: -2px; }
+
+.view-list .fx-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 3fr) minmax(120px, 1.4fr) minmax(110px, 1.4fr) 80px;
+  gap: 12px;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 12.5px;
+}
+.view-list .fx-head {
+  position: sticky;
+  top: -10px;
+  z-index: 1;
+  margin-bottom: 4px;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-3);
+  font-size: 12px;
+}
+.view-list .fx-cell-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.view-list .fx-icon { width: 22px; height: 22px; flex: none; display: grid; place-items: center; pointer-events: none; }
+.view-list .fx-icon .app-tile { --size: 20px; box-shadow: none; }
+.view-list .fx-name { -webkit-line-clamp: 1; text-align: left; }
+.view-list .fx-row > span:not(.fx-cell-name) { color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.view-list .fx-row > span:last-child { text-align: right; }
+.view-list .inline-edit { text-align: left; }
+.fx-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-3);
+  pointer-events: none;
+  font-size: 13px;
+}
+.fx-empty .glyph { width: 40px; height: 40px; opacity: .6; }
+.fx-content.drop-active::after { color: var(--text); background: var(--accent-soft); border-color: var(--accent); }
+
+@container (max-width: 620px) {
+  .fx-sidebar, .explorer .fx-search, .explorer .toolbar-sep { display: none; }
+  .explorer .toolbar { gap: 0; padding: 6px 4px; }
+  .explorer .fx-address { min-width: 60px; }
+  .view-list .fx-row { grid-template-columns: minmax(140px, 1fr) 80px; }
+  .view-list .fx-row > span:nth-child(2), .view-list .fx-row > span:nth-child(3) { display: none; }
+}

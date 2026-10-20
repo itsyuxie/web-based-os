@@ -1,0 +1,72 @@
+/* AwanOS — Minesweeper */
+
+.win-body.minesweeper { background: var(--surface-2); }
+.ms-wrap { flex: 1; overflow: auto; padding: 12px; display: grid; justify-content: center; align-content: start; gap: 10px; }
+.ms-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.ms-head-mid { display: flex; gap: 6px; align-items: center; }
+.ms-lcd {
+  min-width: 62px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #1a0808;
+  color: #ff4d4d;
+  font: 700 22px/1.2 var(--mono);
+  letter-spacing: 2px;
+  text-align: center;
+  text-shadow: 0 0 6px rgba(255, 60, 60, .6);
+}
+.ms-face {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, .2);
+  background: radial-gradient(circle at 35% 30%, #fff59d, #facc15);
+  color: #713f12;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .25);
+}
+.ms-face .glyph { width: 28px; height: 28px; }
+.ms-face:active { transform: scale(.94); }
+.ms-board { display: grid; width: max-content; border: 2px solid var(--border-strong); border-radius: 4px; overflow: hidden; }
+.ms-cell {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  display: grid;
+  place-items: center;
+  font: 800 15px/1 var(--mono);
+  background: linear-gradient(145deg, #d6dde8, #a3b1c4);
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, .65), inset -2px -2px 0 rgba(0, 0, 0, .18);
+}
+:root[data-theme="dark"] .ms-cell { background: linear-gradient(145deg, #5f6d84, #435066); box-shadow: inset 2px 2px 0 rgba(255, 255, 255, .18), inset -2px -2px 0 rgba(0, 0, 0, .3); }
+.ms-cell:hover:not(.open) { filter: brightness(1.08); }
+.ms-cell.open, :root[data-theme="dark"] .ms-cell.open { background: var(--surface); box-shadow: inset 0 0 0 .5px var(--border-strong); }
+.ms-cell .glyph { width: 16px; height: 16px; }
+.ms-cell.flag .glyph { color: #ef4444; }
+.ms-cell.boom, :root[data-theme="dark"] .ms-cell.boom { background: #ef4444; color: #fff; }
+.ms-cell.wrong { background: #fca5a5 !important; }
+.ms-cell[data-n="1"] { color: #2563eb; }
+.ms-cell[data-n="2"] { color: #16a34a; }
+.ms-cell[data-n="3"] { color: #dc2626; }
+.ms-cell[data-n="4"] { color: #1e3a8a; }
+.ms-cell[data-n="5"] { color: #9f1239; }
+.ms-cell[data-n="6"] { color: #0f766e; }
+.ms-cell[data-n="7"] { color: #111827; }
+.ms-cell[data-n="8"] { color: #6b7280; }
+:root[data-theme="dark"] .ms-cell[data-n="1"] { color: #60a5fa; }
+:root[data-theme="dark"] .ms-cell[data-n="2"] { color: #4ade80; }
+:root[data-theme="dark"] .ms-cell[data-n="3"] { color: #f87171; }
+:root[data-theme="dark"] .ms-cell[data-n="4"] { color: #a5b4fc; }
+:root[data-theme="dark"] .ms-cell[data-n="5"] { color: #fb7185; }
+:root[data-theme="dark"] .ms-cell[data-n="6"] { color: #2dd4bf; }
+:root[data-theme="dark"] .ms-cell[data-n="7"] { color: #e5e7eb; }

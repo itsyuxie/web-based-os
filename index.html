@@ -8,7 +8,19 @@
   <title>AwanOS</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/system.css">
-  <link rel="stylesheet" href="css/apps.css">
+
+  <!-- Applications: one folder per app under apps/ -->
+  <link rel="stylesheet" href="apps/explorer/style.css">
+  <link rel="stylesheet" href="apps/notepad/style.css">
+  <link rel="stylesheet" href="apps/terminal/style.css">
+  <link rel="stylesheet" href="apps/browser/style.css">
+  <link rel="stylesheet" href="apps/calculator/style.css">
+  <link rel="stylesheet" href="apps/paint/style.css">
+  <link rel="stylesheet" href="apps/imageviewer/style.css">
+  <link rel="stylesheet" href="apps/minesweeper/style.css">
+  <link rel="stylesheet" href="apps/taskmanager/style.css">
+  <link rel="stylesheet" href="apps/settings/style.css">
+  <link rel="stylesheet" href="apps/about/style.css">
 </head>
 <body>
   <noscript>
@@ -83,18 +95,18 @@
   <script src="js/core/apps.js"></script>
   <script src="js/core/fileops.js"></script>
 
-  <!-- Applications -->
-  <script src="js/apps/explorer.js"></script>
-  <script src="js/apps/notepad.js"></script>
-  <script src="js/apps/terminal.js"></script>
-  <script src="js/apps/browser.js"></script>
-  <script src="js/apps/calculator.js"></script>
-  <script src="js/apps/paint.js"></script>
-  <script src="js/apps/imageviewer.js"></script>
-  <script src="js/apps/minesweeper.js"></script>
-  <script src="js/apps/taskmanager.js"></script>
-  <script src="js/apps/settings.js"></script>
-  <script src="js/apps/about.js"></script>
+  <!-- Applications (apps/<id>/app.js) -->
+  <script src="apps/explorer/app.js"></script>
+  <script src="apps/notepad/app.js"></script>
+  <script src="apps/terminal/app.js"></script>
+  <script src="apps/browser/app.js"></script>
+  <script src="apps/calculator/app.js"></script>
+  <script src="apps/paint/app.js"></script>
+  <script src="apps/imageviewer/app.js"></script>
+  <script src="apps/minesweeper/app.js"></script>
+  <script src="apps/taskmanager/app.js"></script>
+  <script src="apps/settings/app.js"></script>
+  <script src="apps/about/app.js"></script>
 
   <!-- Shell -->
   <script src="js/shell/desktop.js"></script>

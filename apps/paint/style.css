@@ -1,0 +1,12 @@
+/* AwanOS — Paint */
+
+.paint-toolbar { flex-wrap: wrap; row-gap: 4px; }
+.paint-toolbar input[type="range"] { width: 90px; }
+.paint-size { width: 36px; font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.paint-current { width: 32px; height: 32px; padding: 2px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface); }
+.paint-palette { display: grid; grid-template-columns: repeat(10, 15px); grid-auto-rows: 15px; gap: 2px; }
+.paint-swatch { width: 15px; height: 15px; padding: 0; border: 1px solid rgba(0, 0, 0, .25); border-radius: 3px; transition: transform .1s; }
+.paint-swatch:hover { transform: scale(1.2); }
+.paint-area { flex: 1; min-height: 0; overflow: auto; display: flex; padding: 20px; background: var(--surface-3); }
+.paint-canvas { display: block; margin: auto; flex: none; background: #fff; box-shadow: 0 2px 14px rgba(0, 0, 0, .22); touch-action: none; cursor: crosshair; }
+.paint-canvas[data-tool="fill"] { cursor: cell; }

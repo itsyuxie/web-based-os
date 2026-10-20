@@ -1,0 +1,8 @@
+/* AwanOS — Tentang AwanOS */
+
+.win-body.about { align-items: center; justify-content: center; gap: 4px; padding: 24px; text-align: center; }
+.about-hero { margin-bottom: 12px; }
+.about-name { font-size: 24px; font-weight: 700; }
+.about-version { color: var(--text-2); font-size: 13px; }
+.about-desc { max-width: 300px; margin: 12px 0 18px; color: var(--text-2); font-size: 13px; }
+.about-actions { display: flex; gap: 8px; }

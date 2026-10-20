@@ -92,9 +92,22 @@ open ~/Dokumen/halo.html
 ## Struktur proyek
 
 ```
-index.html            Kerangka halaman dan urutan pemuatan skrip
-css/system.css        Gaya shell: token tema, jendela, bilah tugas, menu, dialog
-css/apps.css          Gaya masing-masing aplikasi
+index.html            Kerangka halaman dan urutan pemuatan skrip/gaya
+apps/                 Aplikasi — satu aplikasi satu folder
+  explorer/           Penjelajah Berkas
+  notepad/            Notepad
+  terminal/           Terminal
+  browser/            Browser
+  calculator/         Kalkulator
+  paint/              Paint
+  imageviewer/        Penampil Gambar
+  minesweeper/        Minesweeper
+  taskmanager/        Pengelola Tugas
+  settings/           Pengaturan
+  about/              Tentang AwanOS
+    app.js            (setiap folder) logika aplikasi & pendaftarannya
+    style.css         (setiap folder) gaya khusus aplikasi
+css/system.css        Gaya shell: token tema, jendela, bilah tugas, menu, dialog, toolbar bersama
 js/core/              Inti sistem
   utils.js            Pembuat DOM, event emitter, format angka/tanggal
   icons.js            Set ikon SVG inline
@@ -104,7 +117,6 @@ js/core/              Inti sistem
   wm.js               Window manager
   apps.js             Registri aplikasi dan asosiasi berkas
   fileops.js          Operasi berkas bersama (salin, hapus, impor, unduh, …)
-js/apps/              Satu berkas per aplikasi
 js/shell/             Desktop, bilah tugas, dan siklus sesi
 js/main.js            Bootstrap dan pintasan global
 assets/               Favicon, wallpaper SVG, tangkapan layar
@@ -112,7 +124,10 @@ assets/               Favicon, wallpaper SVG, tangkapan layar
 
 ## Membuat aplikasi sendiri
 
-Tambahkan berkas baru di `js/apps/`, muat di `index.html` sebelum skrip shell, lalu daftarkan:
+1. Buat folder baru `apps/<id>/` berisi `app.js` (dan `style.css` bila perlu).
+2. Muat keduanya di `index.html`: `<link rel="stylesheet" href="apps/<id>/style.css">` di dalam `<head>`,
+   dan `<script src="apps/<id>/app.js"></script>` di bagian *Applications*, sebelum skrip shell.
+3. Daftarkan aplikasinya di `app.js`:
 
 ```js
 (function () {
@@ -127,12 +142,16 @@ Tambahkan berkas baru di `js/apps/`, muat di `index.html` sebelum skrip shell, l
     width: 360,
     height: 240,
     launch(win, args) {
-      win.body.append(h('div', { style: { padding: '24px' } }, 'Halo dari aplikasi baru!'));
+      win.body.classList.add('halo');
+      win.body.append(h('div', { class: 'halo-pesan' }, 'Halo dari aplikasi baru!'));
       win.on('close', () => console.log('jendela ditutup'));
     },
   });
 })();
 ```
+
+Awali selektor di `style.css` dengan kelas aplikasimu (misalnya `.halo-pesan { padding: 24px; }`)
+agar gayanya tidak bocor ke aplikasi lain.
 
 API yang tersedia antara lain `OS.wm.open(id, args)`, `OS.vfs.readFile/writeFile/readdir/…`,
 `OS.ui.alert/confirm/prompt/pickFile`, `OS.notify({ title, body })`, dan `OS.settings.get/set`.

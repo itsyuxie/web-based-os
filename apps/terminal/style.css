@@ -1,0 +1,39 @@
+/* AwanOS — Terminal */
+
+.win-body.terminal { background: #0d1117; }
+.term {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+  font: 13.5px/1.45 var(--mono);
+  color: #d1d7e0;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  scrollbar-color: #30363d transparent;
+}
+.t-row { white-space: pre-wrap; word-break: break-word; min-height: 1.45em; }
+.term-line { display: flex; }
+.term-prompt { white-space: pre; flex: none; }
+.term-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  caret-color: #7ee787;
+}
+.term ::selection { background: rgba(121, 192, 255, .35); }
+.t-green { color: #7ee787; }
+.t-blue { color: #79c0ff; }
+.t-red { color: #ff7b72; }
+.t-yellow { color: #e3b341; }
+.t-cyan { color: #56d4dd; }
+.t-magenta { color: #d2a8ff; }
+.t-dim { color: #7d8590; }
+.t-bold { font-weight: 700; }
+.t-accent { color: color-mix(in srgb, var(--accent) 70%, #fff); }
+.t-invert { background: #d1d7e0; color: #0d1117; }
